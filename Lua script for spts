@@ -2589,6 +2589,2597 @@ AutoKillRStackingToggle:OnChanged(function(isOn)
 								if not localPlayer.Character:FindFirstChild("GodModeShield") and not localPlayer.Character:FindFirstChild("GodModeShield ") and not localPlayer.Character:FindFirstChild("ForceField") and not localPlayer.Character:FindFirstChild("SafeZoneShield") then
 									task.spawn(function()
 										firetouchinterest(Target.Character.HumanoidRootPart, sphere, 0)
+									end)local player = game.Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Passive Auto Respawn Check
+spawn(function()
+    while true do
+        local character = player.Character
+        if character then
+            local humanoid = character:FindFirstChildOfClass("Humanoid")
+            if humanoid and humanoid.MaxHealth > 0 and humanoid.Health <= (humanoid.MaxHealth * 0.30) then
+                -- Triggering respawn action here
+                local args = { [1] = { [1] = "Respawn" } }
+                ReplicatedStorage:WaitForChild("RemoteEvent"):FireServer(unpack(args))
+            end
+        end
+        task.wait(0.01)  -- Check health every 0.45 seconds
+    end
+end)
+
+-- Your existing autofarm code here...
+
+local Players = game:GetService("Players")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.ResetOnSpawn = false
+gui.Name = "AutoFarmGUI"
+
+-- Main frame
+local mainFrame = Instance.new("Frame", gui)
+mainFrame.Size = UDim2.new(0, 250, 0, 200)
+mainFrame.Position = UDim2.new(0.1, 0, 0.1, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
+
+-- Tab buttons
+local tabs = {"PP Farm", "BT Farm", "FS Farm"}
+local tabButtons = {}
+local pages = {}
+
+for i, name in ipairs(tabs) do
+	local button = Instance.new("TextButton", mainFrame)
+	button.Size = UDim2.new(0, 80, 0, 25)
+	button.Position = UDim2.new(0, (i - 1) * 82 + 4, 0, 5)
+	button.Text = name
+	button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	button.TextColor3 = Color3.new(1, 1, 1)
+	button.Font = Enum.Font.GothamBold
+	button.TextSize = 14
+	tabButtons[name] = button
+end
+
+-- Page container
+local pageHolder = Instance.new("Frame", mainFrame)
+pageHolder.Size = UDim2.new(1, -10, 1, -40)
+pageHolder.Position = UDim2.new(0, 5, 0, 35)
+pageHolder.BackgroundTransparency = 1
+
+-- Create pages
+for _, tab in pairs(tabs) do
+	local page = Instance.new("Frame", pageHolder)
+	page.Size = UDim2.new(1, 0, 1, 0)
+	page.BackgroundTransparency = 1
+	page.Visible = false
+	pages[tab] = page
+end
+
+-- Switch tabs
+for name, button in pairs(tabButtons) do
+	button.MouseButton1Click:Connect(function()
+		for _, page in pairs(pages) do
+			page.Visible = false
+		end
+		pages[name].Visible = true
+	end)
+end
+
+-- Default tab
+pages["FS Farm"].Visible = true
+
+-- FS Farm Setup
+local FS = {
+	["Blue Sun"] = Vector3.new(1177, 4789, -2291),
+	["Green Sun"] = Vector3.new(1378, 9274, 1647),
+	["Red Star"] = Vector3.new(-378, 15733, 1)
+}
+
+local farmToggles = {
+	["Blue Sun"] = false,
+	["Green Sun"] = false,
+	["Red Star"] = false
+}
+
+for i, name in ipairs({"Blue Sun", "Green Sun", "Red Star"}) do
+	local btn = Instance.new("TextButton", pages["FS Farm"])
+	btn.Size = UDim2.new(0.9, 0, 0, 30)
+	btn.Position = UDim2.new(0.05, 0, 0, (i - 1) * 35)
+	btn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+	btn.TextColor3 = Color3.new(1, 1, 1)
+	btn.Font = Enum.Font.GothamBold
+	btn.Text = "Farm " .. name .. " [OFF]"
+	btn.TextSize = 14
+
+	btn.MouseButton1Click:Connect(function()
+		farmToggles[name] = not farmToggles[name]
+		btn.Text = "Farm " .. name .. (farmToggles[name] and " [ON]" or " [OFF]")
+	end)
+end
+
+-- Get the RemoteEvent for FS farming
+local remote = game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent")
+
+-- Function to start farming for the selected location
+local function startFarm(name)
+    local char = player.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        -- Fire remote event at ultra-fast rate (0.00001 seconds) and teleport every 6 seconds
+        while farmToggles[name] do
+            -- Fire the remote event for farming (every 0.00001 seconds)
+            local args = { [1] = { [1] = "+FS4" } }  -- You can replace "+FS4" with the correct command if needed
+            remote:FireServer(unpack(args))
+
+            -- Wait for 0.00001 seconds for fast remote event firing
+            task.wait(0.00001)
+
+            -- Teleport the character every 6 seconds (slower teleportation speed)
+            char.HumanoidRootPart.CFrame = CFrame.new(FS[name])
+
+            -- Wait for 6 seconds before teleporting again
+            task.wait(4)
+        end
+    end
+end
+
+
+-- Autofarm loop for FS
+spawn(function()
+	while true do
+		for name, enabled in pairs(farmToggles) do
+			if enabled then
+				-- If not already farming, start farming for the selected location
+				local char = player.Character
+				if char and char:FindFirstChild("HumanoidRootPart") then
+					-- Start farming if character is ready
+					if farmToggles[name] then
+						startFarm(name)
+					end
+				end
+			end
+		end
+		task.wait(0.00001)
+	end
+end)
+
+-- Handle player respawn
+player.CharacterAdded:Connect(function()
+	-- Wait for the new character to load
+	repeat wait() until player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+
+	-- Restart the farming for all selected locations if the toggles are on
+	for name, enabled in pairs(farmToggles) do
+		if enabled then
+			startFarm(name)
+		end
+	end
+end)
+
+-- PP Farm Section
+pages["PP Farm"].Visible = true
+
+-- PP Farm Locations (Area mapping)
+local ppFarmLocations = {
+    ["Zen Island 1M"] = Vector3.new(-2530, 5486, -534),
+    ["Zen Island 1B"] = Vector3.new(-2564, 5501, -440),
+    ["Zen Island 1T"] = Vector3.new(-2580, 5516, -503),
+    ["Zen Island 1Qa"] = Vector3.new(-2547, 5412, -494),
+}
+
+-- Store buttons to update their color and text on toggle
+local ppFarmButtons = {}
+
+-- To store current farming state
+local selectedPPFarmLocation = nil
+local autoFarmingPP = false
+
+-- Function to press key 3 once (for Meditate or specific action)
+local function pressKeyThreeOnce()
+    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Three, false, game)
+    task.wait(0.03)
+    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Three, false, game)
+end
+
+-- Create PP Farm buttons dynamically for each location
+local i = 0
+for name, pos in pairs(ppFarmLocations) do
+    local button = Instance.new("TextButton", pages["PP Farm"])
+    button.Text = name .. " [OFF]"
+    button.Size = UDim2.new(0.9, 0, 0, 30)
+    button.Position = UDim2.new(0.05, 0, 0, i * 35)
+    button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    button.TextColor3 = Color3.new(1, 1, 1)
+    button.Font = Enum.Font.GothamBold
+    button.TextSize = 14
+
+    -- Button click function to toggle the PP farming state
+    button.MouseButton1Click:Connect(function()
+        if selectedPPFarmLocation == name then
+            -- Turn OFF the farming
+            autoFarmingPP = false
+            selectedPPFarmLocation = nil
+            button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            button.Text = name .. " [OFF]"
+        else
+            -- Turn ON the farming
+            autoFarmingPP = true
+            selectedPPFarmLocation = name
+
+            -- Reset other buttons to OFF state
+            for otherName, btn in pairs(ppFarmButtons) do
+                btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+                btn.Text = otherName .. " [OFF]"
+            end
+
+            -- Update this button to ON state
+            button.BackgroundColor3 = Color3.fromRGB(60, 100, 60)
+            button.Text = name .. " [ON]"
+
+            -- Teleport the player to the selected farm location
+            local char = player.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                char.HumanoidRootPart.CFrame = CFrame.new(pos)
+                pressKeyThreeOnce()  -- Perform the key 3 press once for the selected action
+            end
+
+            -- Additional functionality to handle Meditate tool toggle and remote events
+            task.spawn(function()
+                while autoFarmingPP do
+                    local tool = player.Backpack:FindFirstChild("Meditate") or player.Character:FindFirstChild("Meditate")
+                    if tool then
+                        if tool.Parent == player.Backpack then
+                            tool.Parent = player.Character
+                        else
+                            tool.Parent = player.Backpack
+                        end
+                    end
+                    task.wait(0.009)  -- Small delay between actions
+                end
+            end)
+
+            -- Fire server events for farming and invisibility
+            local remote = game:GetService("ReplicatedStorage"):FindFirstChild("RemoteEvent")
+            if remote then
+                local command = "+PP1"  -- Adjust this as needed (could depend on selected mode)
+                local args = { [1] = { [1] = command } }
+                remote:FireServer(unpack(args))
+
+                local invisArgs = { [1] = { [1] = "Skill_Invisible", [2] = "Start" } }
+                remote:FireServer(unpack(invisArgs))
+
+                task.wait(0.0000001)  -- Very small delay to prevent blocking
+            end
+        end
+    end)
+
+    ppFarmButtons[name] = button
+    i = i + 1
+end
+
+-- Main PP farming loop to keep the character at the selected location
+spawn(function()
+    while true do
+        if autoFarmingPP and selectedPPFarmLocation and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            player.Character.HumanoidRootPart.CFrame = CFrame.new(ppFarmLocations[selectedPPFarmLocation])
+        end
+        task.wait(6)
+    end
+end)
+
+-- Handle PP farming on respawn (when character reappears, re-farm)
+player.CharacterAdded:Connect(function(char)
+    if autoFarmingPP and selectedPPFarmLocation then
+        coroutine.wrap(function()
+            char:WaitForChild("HumanoidRootPart")
+            wait(0.5)  -- Small delay for the respawn process to settle
+            char:MoveTo(ppFarmLocations[selectedPPFarmLocation])  -- Move to the selected location
+            wait(1)
+            pressKeyThreeOnce()  -- Press key 3 once after respawn
+
+            -- Fire remote events after respawn
+            local remote = game:GetService("ReplicatedStorage"):FindFirstChild("RemoteEvent")
+            if remote then
+                local command = "+PP1"  -- Adjust as needed based on the selected mode
+                local args = { [1] = { [1] = command } }
+                remote:FireServer(unpack(args))
+
+                local invisArgs = { [1] = { [1] = "Skill_Invisible", [2] = "Start" } }
+                remote:FireServer(unpack(invisArgs))
+
+                task.wait(0.0000001)  -- Very small delay
+            end
+        end)()
+    end
+end)
+
+-- Create the "Body Toughness" tab and buttons
+pages["BT Farm"].Visible = true
+
+local btOptions = {"No Area Farming", "Ice Bath", "Fire Bath", "IceBerg", "Tornado", "Volcano", "Hell Fire Pit", "Green Acid Pool", "Red Acid Pool"}
+local btLocations = {
+	["Ice Bath"] = Vector3.new(364, 250, -446),
+	["Fire Bath"] = Vector3.new(355, 264, -493),
+	["IceBerg"] = Vector3.new(1638, 259, 2248),
+	["Tornado"] = Vector3.new(-2300, 977, 1075),
+	["Volcano"] = Vector3.new(-1981, 714, -1921),
+	["Hell Fire Pit"] = Vector3.new(-246, 287, 984),
+	["Green Acid Pool"] = Vector3.new(-269, 281, 988),
+	["Red Acid Pool"] = Vector3.new(-269, 282, 1007)
+}
+
+-- Adding Dropdown for BT location selection
+local btDropdown = Instance.new("TextButton", pages["BT Farm"])
+btDropdown.Size = UDim2.new(0.9, 0, 0, 30)
+btDropdown.Position = UDim2.new(0.05, 0, 0, 0)
+btDropdown.Text = "Select BT Location: No Area Farming"
+btDropdown.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+btDropdown.TextColor3 = Color3.new(1, 1, 1)
+btDropdown.Font = Enum.Font.GothamBold
+btDropdown.TextSize = 14
+
+-- Track the selected BT Location
+local selectedBTLocation = "No Area Farming"
+
+-- Dropdown value update for BT locations
+btDropdown.MouseButton1Click:Connect(function()
+	local menu = Instance.new("Frame")
+	menu.Size = UDim2.new(1, 0, 0, 30 * #btOptions)
+	menu.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	menu.Position = UDim2.new(0.05, 0, 0, 120)
+
+	for i, option in ipairs(btOptions) do
+		local btn = Instance.new("TextButton", menu)
+		btn.Size = UDim2.new(1, 0, 0, 30)
+		btn.Position = UDim2.new(0, 0, 0, (i - 1) * 30)
+		btn.Text = option
+		btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+		btn.TextColor3 = Color3.new(1, 1, 1)
+		btn.Font = Enum.Font.GothamBold
+		btn.TextSize = 14
+
+		btn.MouseButton1Click:Connect(function()
+			selectedBTLocation = option
+			btDropdown.Text = "Select BT Location: " .. option
+			menu:Destroy()
+		end)
+	end
+
+	menu.Parent = pages["BT Farm"]
+end)
+
+-- Adding BT Farming Toggle
+local FarmBTToggle = Instance.new("TextButton", pages["BT Farm"])
+FarmBTToggle.Size = UDim2.new(0.9, 0, 0, 30)
+FarmBTToggle.Position = UDim2.new(0.05, 0, 0, 40)
+FarmBTToggle.Text = "Farm Body Toughness [OFF]"
+FarmBTToggle.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+FarmBTToggle.TextColor3 = Color3.new(1, 1, 1)
+FarmBTToggle.Font = Enum.Font.GothamBold
+FarmBTToggle.TextSize = 14
+
+local btFarmToggleState = false
+
+FarmBTToggle.MouseButton1Click:Connect(function()
+	btFarmToggleState = not btFarmToggleState
+	FarmBTToggle.Text = "Farm Body Toughness [" .. (btFarmToggleState and "ON" or "OFF") .. "]"
+
+	-- When toggling ON, we start farming
+	if btFarmToggleState then
+		-- Start BT Farming
+		task.spawn(function()
+			while btFarmToggleState do
+				if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+					if selectedBTLocation ~= "No Area Farming" then
+						local loc = btLocations[selectedBTLocation]
+						if loc then
+							print("Teleporting to: " .. selectedBTLocation) -- Debugging teleport
+							player.Character.HumanoidRootPart.CFrame = CFrame.new(loc)
+
+							-- Optional: Add a small wait to ensure the teleport is fully registered
+							task.wait(0.5)  -- Adjust based on your preference
+							
+							-- Fire the remote event for farming
+							local args = { { "+BT1" } }
+							game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):FireServer(unpack(args))
+						end
+					else
+						-- If No Area Farming, trigger the remote event
+						local args = { { "+BT1" } }
+						game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):FireServer(unpack(args))
+					end
+				end
+				task.wait(3)  -- Adjust wait time between actions for better stability
+			end
+		end)
+	end
+end)
+
+-- Adding Death Grinding Toggle
+local DeathGrindingToggle = Instance.new("TextButton", pages["BT Farm"])
+DeathGrindingToggle.Size = UDim2.new(0.9, 0, 0, 30)
+DeathGrindingToggle.Position = UDim2.new(0.05, 0, 0, 80)
+DeathGrindingToggle.Text = "Body Toughness Death Farming [OFF]"
+DeathGrindingToggle.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+DeathGrindingToggle.TextColor3 = Color3.new(1, 1, 1)
+DeathGrindingToggle.Font = Enum.Font.GothamBold
+DeathGrindingToggle.TextSize = 14
+
+local deathGrindToggleState = false
+
+DeathGrindingToggle.MouseButton1Click:Connect(function()
+	deathGrindToggleState = not deathGrindToggleState
+	DeathGrindingToggle.Text = "Body Toughness Death Farming [" .. (deathGrindToggleState and "ON" or "OFF") .. "]"
+	
+	if deathGrindToggleState then
+		-- Start Death Grinding Farming
+		task.spawn(function()
+			while deathGrindToggleState do
+				local bt = player.PrivateStats.BodyToughness.Value
+				if bt >= 5 and bt < 500 then
+					if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+						player.Character.HumanoidRootPart.CFrame = CFrame.new(btLocations["Ice Bath"])
+					end
+				elseif bt >= 500 and bt < 5000 then
+					if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+						player.Character.HumanoidRootPart.CFrame = CFrame.new(btLocations["Fire Bath"])
+					end
+				elseif bt >= 5000 and bt < 50000 then
+					if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+						player.Character.HumanoidRootPart.CFrame = CFrame.new(btLocations["IceBerg"])
+					end
+				elseif bt >= 50000 and bt < 500000 then
+					if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+						player.Character.HumanoidRootPart.CFrame = CFrame.new(btLocations["Tornado"])
+					end
+				elseif bt >= 500000 and bt < 50000000 then
+					if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+						player.Character.HumanoidRootPart.CFrame = CFrame.new(btLocations["Volcano"])
+					end
+				elseif bt >= 50000000 and bt < 5000000000 then
+					if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+						player.Character.HumanoidRootPart.CFrame = CFrame.new(btLocations["Hell Fire Pit"])
+					end
+				elseif bt >= 5000000000 and bt < 500000000000 then
+					if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+						player.Character.HumanoidRootPart.CFrame = CFrame.new(btLocations["Green Acid Pool"])
+					end
+				elseif bt >= 500000000000 then
+					if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+						player.Character.HumanoidRootPart.CFrame = CFrame.new(btLocations["Red Acid Pool"])
+					end
+				end
+				task.wait(0.00000000001)  -- Adjust wait time between actions for better stability
+			end
+		end)
+	end
+end)
+
+-- Dropdown value update for BT locations
+btDropdown.MouseButton1Click:Connect(function()
+	local menu = Instance.new("Frame")
+	menu.Size = UDim2.new(1, 0, 0, 30 * #btOptions)
+	menu.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	menu.Position = UDim2.new(0.05, 0, 0, 120)
+
+	for i, option in ipairs(btOptions) do
+		local btn = Instance.new("TextButton", menu)
+		btn.Size = UDim2.new(1, 0, 0, 30)
+		btn.Position = UDim2.new(0, 0, 0, (i - 1) * 30)
+		btn.Text = option
+		btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+		btn.TextColor3 = Color3.new(1, 1, 1)
+		btn.Font = Enum.Font.GothamBold
+		btn.TextSize = 14
+
+		btn.MouseButton1Click:Connect(function()
+			btDropdown.Text = "Select BT Location: " .. option
+			menu:Destroy()
+		end)
+	end
+
+	menu.Parent = pages["BT Farm"]
+end)
+
+--ESP
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = game:GetService("Workspace").CurrentCamera
+
+-- TRACK SERVER TIME PER PLAYER
+local joinTimes = {}
+for _, player in ipairs(Players:GetPlayers()) do
+    joinTimes[player] = tick()
+end
+Players.PlayerAdded:Connect(function(player)
+    joinTimes[player] = tick()
+end)
+Players.PlayerRemoving:Connect(function(player)
+    joinTimes[player] = nil
+end)
+
+-- ABBREVIATE NUMBER
+local function abbreviateNumber(num)
+    local abbreviations = {"", "K", "M", "B", "T", "Qa", "Qi"}
+    local index = 1
+    while num >= 1000 and index < #abbreviations do
+        num = num / 1000
+        index = index + 1
+    end
+    return string.format("%.2f%s", num, abbreviations[index])
+end
+
+-- COMPARE INDIVIDUAL STATS
+local function isWeaker(localVal, remoteVal)
+    return localVal > remoteVal  -- Returns true if local player is stronger
+end
+
+-- CREATE OR UPDATE ESP
+local function createESP(player)
+    if not player.Character then return end
+    local head = player.Character:FindFirstChild("Head")
+    if not head then return end
+
+    -- Billboard ESP
+    if not player.Character:FindFirstChild("ESP") then
+        local esp = Instance.new("BillboardGui")
+        esp.Name = "ESP"
+        esp.Adornee = head
+        esp.Size = UDim2.new(6, 0, 4, 0)
+        esp.StudsOffset = Vector3.new(0, 4, 0)
+        esp.AlwaysOnTop = true
+
+        local label = Instance.new("TextLabel")
+        label.Name = "StatsLabel"
+        label.Size = UDim2.new(1, 0, 1, 0)
+        label.BackgroundTransparency = 1
+        label.TextScaled = true
+        label.RichText = true
+        label.Font = Enum.Font.SourceSansBold
+        label.TextColor3 = Color3.fromRGB(255, 255, 255)
+        label.Parent = esp
+
+        esp.Parent = player.Character
+    end
+
+    -- Highlight (Glow outline with pulse)
+    if not player.Character:FindFirstChild("BodyHighlight") then
+        local highlight = Instance.new("Highlight")
+        highlight.Name = "BodyHighlight"
+        highlight.FillTransparency = 1
+        highlight.OutlineTransparency = 0
+        highlight.Adornee = player.Character
+        highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        highlight.Parent = player.Character
+    end
+
+    -- Tracer (for players you can kill)
+    if not player.Character:FindFirstChild("TracerBeam") then
+        local tracerBeam = Instance.new("Beam")
+        tracerBeam.Name = "TracerBeam"
+        tracerBeam.Width0 = 0.1
+        tracerBeam.Width1 = 0.1
+        tracerBeam.Color = ColorSequence.new(Color3.fromRGB(0, 255, 0))  -- Green for weaker players
+        tracerBeam.Transparency = NumberSequence.new(0.5)
+        tracerBeam.Parent = player.Character
+        tracerBeam.Enabled = false  -- Initially disabled until we check if we can kill
+    end
+end
+
+local function updateESP(player)
+    if not player.Character then return end
+
+    local esp = player.Character:FindFirstChild("ESP")
+    local label = esp and esp:FindFirstChild("StatsLabel")
+    local highlight = player.Character:FindFirstChild("BodyHighlight")
+    local tracerBeam = player.Character:FindFirstChild("TracerBeam")
+
+    if not (label and highlight) then return end
+
+    local pStats = player:FindFirstChild("PrivateStats")
+    local lStats = LocalPlayer:FindFirstChild("PrivateStats")
+    if not (pStats and lStats) then return end
+
+    local function stat(name)
+        return (pStats:FindFirstChild(name) and pStats[name].Value) or 0
+    end
+
+    local function localStat(name)
+        return (lStats:FindFirstChild(name) and lStats[name].Value) or 0
+    end
+
+    local pPP = stat("PsychicPower")
+    local pFS = stat("FistStrength")
+    local pBT = stat("BodyToughness")
+
+    local lPP = localStat("PsychicPower")
+    local lFS = localStat("FistStrength")
+    local lBT = localStat("BodyToughness")
+
+    -- Check if any stat of the other player is weaker (this enables tracer)
+    local canKill = false
+    if isWeaker(lPP, pPP) or isWeaker(lFS, pFS) or isWeaker(lBT, pBT) then
+        canKill = true
+    end
+
+    -- Color code based on comparison
+    local hexColor = canKill and "#00FF00" or "#FF0000"  -- Green if you can kill, Red if you can't
+    local color3 = canKill and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+
+    -- Distance between player and local player
+    local distance = (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+
+    -- Update stats label
+    local timeInServer = math.floor(tick() - (joinTimes[player] or tick()))
+    label.Text = string.format(
+        "<b><font color='%s'>%s</font></b>\nDistance: %.1f\nTime: %ss\nPP: %s\nFS: %s\nBT: %s",
+        hexColor,
+        player.Name,
+        distance,
+        timeInServer,
+        abbreviateNumber(pPP),
+        abbreviateNumber(pFS),
+        abbreviateNumber(pBT)
+    )
+
+    highlight.OutlineColor = color3
+
+    -- Update Tracer for players you can kill (weaker players)
+    if canKill and tracerBeam then
+        tracerBeam.Enabled = true
+        tracerBeam.Attachment0 = LocalPlayer.Character.HumanoidRootPart:FindFirstChild("RootAttachment") or LocalPlayer.Character.HumanoidRootPart:FindFirstChild("HumanoidRootPart")
+        tracerBeam.Attachment1 = player.Character.HumanoidRootPart:FindFirstChild("RootAttachment") or player.Character.HumanoidRootPart:FindFirstChild("HumanoidRootPart")
+    elseif tracerBeam then
+        tracerBeam.Enabled = false  -- Disable tracer if you can't kill them
+    end
+end
+
+-- CLEANUP
+Players.PlayerRemoving:Connect(function(player)
+    if player.Character then
+        local esp = player.Character:FindFirstChild("ESP")
+        local hl = player.Character:FindFirstChild("BodyHighlight")
+        local tracerBeam = player.Character:FindFirstChild("TracerBeam")
+        if esp then esp:Destroy() end
+        if hl then hl:Destroy() end
+        if tracerBeam then tracerBeam:Destroy() end
+    end
+end)
+
+-- LOOP
+RunService.Heartbeat:Connect(function()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            createESP(player)
+            updateESP(player)
+        end
+    end
+end)
+
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        wait(1)
+        createESP(player)
+    end)
+end)
+local player = game.Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Passive Auto Respawn Check
+spawn(function()
+    while true do
+        local character = player.Character
+        if character then
+            local humanoid = character:FindFirstChildOfClass("Humanoid")
+            if humanoid and humanoid.MaxHealth > 0 and humanoid.Health <= (humanoid.MaxHealth * 0.30) then
+                -- Triggering respawn action here
+                local args = { [1] = { [1] = "Respawn" } }
+                ReplicatedStorage:WaitForChild("RemoteEvent"):FireServer(unpack(args))
+            end
+        end
+        task.wait(0.01)  -- Check health every 0.45 seconds
+    end
+end)
+
+-- Your existing autofarm code here...
+
+local Players = game:GetService("Players")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.ResetOnSpawn = false
+gui.Name = "AutoFarmGUI"
+
+-- Main frame
+local mainFrame = Instance.new("Frame", gui)
+mainFrame.Size = UDim2.new(0, 250, 0, 200)
+mainFrame.Position = UDim2.new(0.1, 0, 0.1, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
+
+-- Tab buttons
+local tabs = {"PP Farm", "BT Farm", "FS Farm"}
+local tabButtons = {}
+local pages = {}
+
+for i, name in ipairs(tabs) do
+	local button = Instance.new("TextButton", mainFrame)
+	button.Size = UDim2.new(0, 80, 0, 25)
+	button.Position = UDim2.new(0, (i - 1) * 82 + 4, 0, 5)
+	button.Text = name
+	button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	button.TextColor3 = Color3.new(1, 1, 1)
+	button.Font = Enum.Font.GothamBold
+	button.TextSize = 14
+	tabButtons[name] = button
+end
+
+-- Page container
+local pageHolder = Instance.new("Frame", mainFrame)
+pageHolder.Size = UDim2.new(1, -10, 1, -40)
+pageHolder.Position = UDim2.new(0, 5, 0, 35)
+pageHolder.BackgroundTransparency = 1
+
+-- Create pages
+for _, tab in pairs(tabs) do
+	local page = Instance.new("Frame", pageHolder)
+	page.Size = UDim2.new(1, 0, 1, 0)
+	page.BackgroundTransparency = 1
+	page.Visible = false
+	pages[tab] = page
+end
+
+-- Switch tabs
+for name, button in pairs(tabButtons) do
+	button.MouseButton1Click:Connect(function()
+		for _, page in pairs(pages) do
+			page.Visible = false
+		end
+		pages[name].Visible = true
+	end)
+end
+
+-- Default tab
+pages["FS Farm"].Visible = true
+
+-- FS Farm Setup
+local FS = {
+	["Blue Sun"] = Vector3.new(1177, 4789, -2291),
+	["Green Sun"] = Vector3.new(1378, 9274, 1647),
+	["Red Star"] = Vector3.new(-378, 15733, 1)
+}
+
+local farmToggles = {
+	["Blue Sun"] = false,
+	["Green Sun"] = false,
+	["Red Star"] = false
+}
+
+for i, name in ipairs({"Blue Sun", "Green Sun", "Red Star"}) do
+	local btn = Instance.new("TextButton", pages["FS Farm"])
+	btn.Size = UDim2.new(0.9, 0, 0, 30)
+	btn.Position = UDim2.new(0.05, 0, 0, (i - 1) * 35)
+	btn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+	btn.TextColor3 = Color3.new(1, 1, 1)
+	btn.Font = Enum.Font.GothamBold
+	btn.Text = "Farm " .. name .. " [OFF]"
+	btn.TextSize = 14
+
+	btn.MouseButton1Click:Connect(function()
+		farmToggles[name] = not farmToggles[name]
+		btn.Text = "Farm " .. name .. (farmToggles[name] and " [ON]" or " [OFF]")
+	end)
+end
+
+-- Get the RemoteEvent for FS farming
+local remote = game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent")
+
+-- Function to start farming for the selected location
+local function startFarm(name)
+    local char = player.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        -- Fire remote event at ultra-fast rate (0.00001 seconds) and teleport every 6 seconds
+        while farmToggles[name] do
+            -- Fire the remote event for farming (every 0.00001 seconds)
+            local args = { [1] = { [1] = "+FS4" } }  -- You can replace "+FS4" with the correct command if needed
+            remote:FireServer(unpack(args))
+
+            -- Wait for 0.00001 seconds for fast remote event firing
+            task.wait(0.00001)
+
+            -- Teleport the character every 6 seconds (slower teleportation speed)
+            char.HumanoidRootPart.CFrame = CFrame.new(FS[name])
+
+            -- Wait for 6 seconds before teleporting again
+            task.wait(4)
+        end
+    end
+end
+
+
+-- Autofarm loop for FS
+spawn(function()
+	while true do
+		for name, enabled in pairs(farmToggles) do
+			if enabled then
+				-- If not already farming, start farming for the selected location
+				local char = player.Character
+				if char and char:FindFirstChild("HumanoidRootPart") then
+					-- Start farming if character is ready
+					if farmToggles[name] then
+						startFarm(name)
+					end
+				end
+			end
+		end
+		task.wait(0.00001)
+	end
+end)
+
+-- Handle player respawn
+player.CharacterAdded:Connect(function()
+	-- Wait for the new character to load
+	repeat wait() until player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+
+	-- Restart the farming for all selected locations if the toggles are on
+	for name, enabled in pairs(farmToggles) do
+		if enabled then
+			startFarm(name)
+		end
+	end
+end)
+
+-- PP Farm Section
+pages["PP Farm"].Visible = true
+
+-- PP Farm Locations (Area mapping)
+local ppFarmLocations = {
+    ["Zen Island 1M"] = Vector3.new(-2530, 5486, -534),
+    ["Zen Island 1B"] = Vector3.new(-2564, 5501, -440),
+    ["Zen Island 1T"] = Vector3.new(-2580, 5516, -503),
+    ["Zen Island 1Qa"] = Vector3.new(-2547, 5412, -494),
+}
+
+-- Store buttons to update their color and text on toggle
+local ppFarmButtons = {}
+
+-- To store current farming state
+local selectedPPFarmLocation = nil
+local autoFarmingPP = false
+
+-- Function to press key 3 once (for Meditate or specific action)
+local function pressKeyThreeOnce()
+    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Three, false, game)
+    task.wait(0.03)
+    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Three, false, game)
+end
+
+-- Create PP Farm buttons dynamically for each location
+local i = 0
+for name, pos in pairs(ppFarmLocations) do
+    local button = Instance.new("TextButton", pages["PP Farm"])
+    button.Text = name .. " [OFF]"
+    button.Size = UDim2.new(0.9, 0, 0, 30)
+    button.Position = UDim2.new(0.05, 0, 0, i * 35)
+    button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    button.TextColor3 = Color3.new(1, 1, 1)
+    button.Font = Enum.Font.GothamBold
+    button.TextSize = 14
+
+    -- Button click function to toggle the PP farming state
+    button.MouseButton1Click:Connect(function()
+        if selectedPPFarmLocation == name then
+            -- Turn OFF the farming
+            autoFarmingPP = false
+            selectedPPFarmLocation = nil
+            button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            button.Text = name .. " [OFF]"
+        else
+            -- Turn ON the farming
+            autoFarmingPP = true
+            selectedPPFarmLocation = name
+
+            -- Reset other buttons to OFF state
+            for otherName, btn in pairs(ppFarmButtons) do
+                btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+                btn.Text = otherName .. " [OFF]"
+            end
+
+            -- Update this button to ON state
+            button.BackgroundColor3 = Color3.fromRGB(60, 100, 60)
+            button.Text = name .. " [ON]"
+
+            -- Teleport the player to the selected farm location
+            local char = player.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                char.HumanoidRootPart.CFrame = CFrame.new(pos)
+                pressKeyThreeOnce()  -- Perform the key 3 press once for the selected action
+            end
+
+            -- Additional functionality to handle Meditate tool toggle and remote events
+            task.spawn(function()
+                while autoFarmingPP do
+                    local tool = player.Backpack:FindFirstChild("Meditate") or player.Character:FindFirstChild("Meditate")
+                    if tool then
+                        if tool.Parent == player.Backpack then
+                            tool.Parent = player.Character
+                        else
+                            tool.Parent = player.Backpack
+                        end
+                    end
+                    task.wait(0.009)  -- Small delay between actions
+                end
+            end)
+
+            -- Fire server events for farming and invisibility
+            local remote = game:GetService("ReplicatedStorage"):FindFirstChild("RemoteEvent")
+            if remote then
+                local command = "+PP1"  -- Adjust this as needed (could depend on selected mode)
+                local args = { [1] = { [1] = command } }
+                remote:FireServer(unpack(args))
+
+                local invisArgs = { [1] = { [1] = "Skill_Invisible", [2] = "Start" } }
+                remote:FireServer(unpack(invisArgs))
+
+                task.wait(0.0000001)  -- Very small delay to prevent blocking
+            end
+        end
+    end)
+
+    ppFarmButtons[name] = button
+    i = i + 1
+end
+
+-- Main PP farming loop to keep the character at the selected location
+spawn(function()
+    while true do
+        if autoFarmingPP and selectedPPFarmLocation and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            player.Character.HumanoidRootPart.CFrame = CFrame.new(ppFarmLocations[selectedPPFarmLocation])
+        end
+        task.wait(6)
+    end
+end)
+
+-- Handle PP farming on respawn (when character reappears, re-farm)
+player.CharacterAdded:Connect(function(char)
+    if autoFarmingPP and selectedPPFarmLocation then
+        coroutine.wrap(function()
+            char:WaitForChild("HumanoidRootPart")
+            wait(0.5)  -- Small delay for the respawn process to settle
+            char:MoveTo(ppFarmLocations[selectedPPFarmLocation])  -- Move to the selected location
+            wait(1)
+            pressKeyThreeOnce()  -- Press key 3 once after respawn
+
+            -- Fire remote events after respawn
+            local remote = game:GetService("ReplicatedStorage"):FindFirstChild("RemoteEvent")
+            if remote then
+                local command = "+PP1"  -- Adjust as needed based on the selected mode
+                local args = { [1] = { [1] = command } }
+                remote:FireServer(unpack(args))
+
+                local invisArgs = { [1] = { [1] = "Skill_Invisible", [2] = "Start" } }
+                remote:FireServer(unpack(invisArgs))
+
+                task.wait(0.0000001)  -- Very small delay
+            end
+        end)()
+    end
+end)
+
+-- Create the "Body Toughness" tab and buttons
+pages["BT Farm"].Visible = true
+
+local btOptions = {"No Area Farming", "Ice Bath", "Fire Bath", "IceBerg", "Tornado", "Volcano", "Hell Fire Pit", "Green Acid Pool", "Red Acid Pool"}
+local btLocations = {
+	["Ice Bath"] = Vector3.new(364, 250, -446),
+	["Fire Bath"] = Vector3.new(355, 264, -493),
+	["IceBerg"] = Vector3.new(1638, 259, 2248),
+	["Tornado"] = Vector3.new(-2300, 977, 1075),
+	["Volcano"] = Vector3.new(-1981, 714, -1921),
+	["Hell Fire Pit"] = Vector3.new(-246, 287, 984),
+	["Green Acid Pool"] = Vector3.new(-269, 281, 988),
+	["Red Acid Pool"] = Vector3.new(-269, 282, 1007)
+}
+
+-- Adding Dropdown for BT location selection
+local btDropdown = Instance.new("TextButton", pages["BT Farm"])
+btDropdown.Size = UDim2.new(0.9, 0, 0, 30)
+btDropdown.Position = UDim2.new(0.05, 0, 0, 0)
+btDropdown.Text = "Select BT Location: No Area Farming"
+btDropdown.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+btDropdown.TextColor3 = Color3.new(1, 1, 1)
+btDropdown.Font = Enum.Font.GothamBold
+btDropdown.TextSize = 14
+
+-- Track the selected BT Location
+local selectedBTLocation = "No Area Farming"
+
+-- Dropdown value update for BT locations
+btDropdown.MouseButton1Click:Connect(function()
+	local menu = Instance.new("Frame")
+	menu.Size = UDim2.new(1, 0, 0, 30 * #btOptions)
+	menu.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	menu.Position = UDim2.new(0.05, 0, 0, 120)
+
+	for i, option in ipairs(btOptions) do
+		local btn = Instance.new("TextButton", menu)
+		btn.Size = UDim2.new(1, 0, 0, 30)
+		btn.Position = UDim2.new(0, 0, 0, (i - 1) * 30)
+		btn.Text = option
+		btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+		btn.TextColor3 = Color3.new(1, 1, 1)
+		btn.Font = Enum.Font.GothamBold
+		btn.TextSize = 14
+
+		btn.MouseButton1Click:Connect(function()
+			selectedBTLocation = option
+			btDropdown.Text = "Select BT Location: " .. option
+			menu:Destroy()
+		end)
+	end
+
+	menu.Parent = pages["BT Farm"]
+end)
+
+-- Adding BT Farming Toggle
+local FarmBTToggle = Instance.new("TextButton", pages["BT Farm"])
+FarmBTToggle.Size = UDim2.new(0.9, 0, 0, 30)
+FarmBTToggle.Position = UDim2.new(0.05, 0, 0, 40)
+FarmBTToggle.Text = "Farm Body Toughness [OFF]"
+FarmBTToggle.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+FarmBTToggle.TextColor3 = Color3.new(1, 1, 1)
+FarmBTToggle.Font = Enum.Font.GothamBold
+FarmBTToggle.TextSize = 14
+
+local btFarmToggleState = false
+
+FarmBTToggle.MouseButton1Click:Connect(function()
+	btFarmToggleState = not btFarmToggleState
+	FarmBTToggle.Text = "Farm Body Toughness [" .. (btFarmToggleState and "ON" or "OFF") .. "]"
+
+	-- When toggling ON, we start farming
+	if btFarmToggleState then
+		-- Start BT Farming
+		task.spawn(function()
+			while btFarmToggleState do
+				if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+					if selectedBTLocation ~= "No Area Farming" then
+						local loc = btLocations[selectedBTLocation]
+						if loc then
+							print("Teleporting to: " .. selectedBTLocation) -- Debugging teleport
+							player.Character.HumanoidRootPart.CFrame = CFrame.new(loc)
+
+							-- Optional: Add a small wait to ensure the teleport is fully registered
+							task.wait(0.5)  -- Adjust based on your preference
+							
+							-- Fire the remote event for farming
+							local args = { { "+BT1" } }
+							game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):FireServer(unpack(args))
+						end
+					else
+						-- If No Area Farming, trigger the remote event
+						local args = { { "+BT1" } }
+						game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):FireServer(unpack(args))
+					end
+				end
+				task.wait(3)  -- Adjust wait time between actions for better stability
+			end
+		end)
+	end
+end)
+
+-- Adding Death Grinding Toggle
+local DeathGrindingToggle = Instance.new("TextButton", pages["BT Farm"])
+DeathGrindingToggle.Size = UDim2.new(0.9, 0, 0, 30)
+DeathGrindingToggle.Position = UDim2.new(0.05, 0, 0, 80)
+DeathGrindingToggle.Text = "Body Toughness Death Farming [OFF]"
+DeathGrindingToggle.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+DeathGrindingToggle.TextColor3 = Color3.new(1, 1, 1)
+DeathGrindingToggle.Font = Enum.Font.GothamBold
+DeathGrindingToggle.TextSize = 14
+
+local deathGrindToggleState = false
+
+DeathGrindingToggle.MouseButton1Click:Connect(function()
+	deathGrindToggleState = not deathGrindToggleState
+	DeathGrindingToggle.Text = "Body Toughness Death Farming [" .. (deathGrindToggleState and "ON" or "OFF") .. "]"
+	
+	if deathGrindToggleState then
+		-- Start Death Grinding Farming
+		task.spawn(function()
+			while deathGrindToggleState do
+				local bt = player.PrivateStats.BodyToughness.Value
+				if bt >= 5 and bt < 500 then
+					if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+						player.Character.HumanoidRootPart.CFrame = CFrame.new(btLocations["Ice Bath"])
+					end
+				elseif bt >= 500 and bt < 5000 then
+					if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+						player.Character.HumanoidRootPart.CFrame = CFrame.new(btLocations["Fire Bath"])
+					end
+				elseif bt >= 5000 and bt < 50000 then
+					if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+						player.Character.HumanoidRootPart.CFrame = CFrame.new(btLocations["IceBerg"])
+					end
+				elseif bt >= 50000 and bt < 500000 then
+					if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+						player.Character.HumanoidRootPart.CFrame = CFrame.new(btLocations["Tornado"])
+					end
+				elseif bt >= 500000 and bt < 50000000 then
+					if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+						player.Character.HumanoidRootPart.CFrame = CFrame.new(btLocations["Volcano"])
+					end
+				elseif bt >= 50000000 and bt < 5000000000 then
+					if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+						player.Character.HumanoidRootPart.CFrame = CFrame.new(btLocations["Hell Fire Pit"])
+					end
+				elseif bt >= 5000000000 and bt < 500000000000 then
+					if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+						player.Character.HumanoidRootPart.CFrame = CFrame.new(btLocations["Green Acid Pool"])
+					end
+				elseif bt >= 500000000000 then
+					if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+						player.Character.HumanoidRootPart.CFrame = CFrame.new(btLocations["Red Acid Pool"])
+					end
+				end
+				task.wait(0.00000000001)  -- Adjust wait time between actions for better stability
+			end
+		end)
+	end
+end)
+
+-- Dropdown value update for BT locations
+btDropdown.MouseButton1Click:Connect(function()
+	local menu = Instance.new("Frame")
+	menu.Size = UDim2.new(1, 0, 0, 30 * #btOptions)
+	menu.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	menu.Position = UDim2.new(0.05, 0, 0, 120)
+
+	for i, option in ipairs(btOptions) do
+		local btn = Instance.new("TextButton", menu)
+		btn.Size = UDim2.new(1, 0, 0, 30)
+		btn.Position = UDim2.new(0, 0, 0, (i - 1) * 30)
+		btn.Text = option
+		btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+		btn.TextColor3 = Color3.new(1, 1, 1)
+		btn.Font = Enum.Font.GothamBold
+		btn.TextSize = 14
+
+		btn.MouseButton1Click:Connect(function()
+			btDropdown.Text = "Select BT Location: " .. option
+			menu:Destroy()
+		end)
+	end
+
+	menu.Parent = pages["BT Farm"]
+end)
+
+--ESP
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = game:GetService("Workspace").CurrentCamera
+
+-- TRACK SERVER TIME PER PLAYER
+local joinTimes = {}
+for _, player in ipairs(Players:GetPlayers()) do
+    joinTimes[player] = tick()
+end
+Players.PlayerAdded:Connect(function(player)
+    joinTimes[player] = tick()
+end)
+Players.PlayerRemoving:Connect(function(player)
+    joinTimes[player] = nil
+end)
+
+-- ABBREVIATE NUMBER
+local function abbreviateNumber(num)
+    local abbreviations = {"", "K", "M", "B", "T", "Qa", "Qi"}
+    local index = 1
+    while num >= 1000 and index < #abbreviations do
+        num = num / 1000
+        index = index + 1
+    end
+    return string.format("%.2f%s", num, abbreviations[index])
+end
+
+-- COMPARE INDIVIDUAL STATS
+local function isWeaker(localVal, remoteVal)
+    return localVal > remoteVal  -- Returns true if local player is stronger
+end
+
+-- CREATE OR UPDATE ESP
+local function createESP(player)
+    if not player.Character then return end
+    local head = player.Character:FindFirstChild("Head")
+    if not head then return end
+
+    -- Billboard ESP
+    if not player.Character:FindFirstChild("ESP") then
+        local esp = Instance.new("BillboardGui")
+        esp.Name = "ESP"
+        esp.Adornee = head
+        esp.Size = UDim2.new(6, 0, 4, 0)
+        esp.StudsOffset = Vector3.new(0, 4, 0)
+        esp.AlwaysOnTop = true
+
+        local label = Instance.new("TextLabel")
+        label.Name = "StatsLabel"
+        label.Size = UDim2.new(1, 0, 1, 0)
+        label.BackgroundTransparency = 1
+        label.TextScaled = true
+        label.RichText = true
+        label.Font = Enum.Font.SourceSansBold
+        label.TextColor3 = Color3.fromRGB(255, 255, 255)
+        label.Parent = esp
+
+        esp.Parent = player.Character
+    end
+
+    -- Highlight (Glow outline with pulse)
+    if not player.Character:FindFirstChild("BodyHighlight") then
+        local highlight = Instance.new("Highlight")
+        highlight.Name = "BodyHighlight"
+        highlight.FillTransparency = 1
+        highlight.OutlineTransparency = 0
+        highlight.Adornee = player.Character
+        highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        highlight.Parent = player.Character
+    end
+
+    -- Tracer (for players you can kill)
+    if not player.Character:FindFirstChild("TracerBeam") then
+        local tracerBeam = Instance.new("Beam")
+        tracerBeam.Name = "TracerBeam"
+        tracerBeam.Width0 = 0.1
+        tracerBeam.Width1 = 0.1
+        tracerBeam.Color = ColorSequence.new(Color3.fromRGB(0, 255, 0))  -- Green for weaker players
+        tracerBeam.Transparency = NumberSequence.new(0.5)
+        tracerBeam.Parent = player.Character
+        tracerBeam.Enabled = false  -- Initially disabled until we check if we can kill
+    end
+end
+
+local function updateESP(player)
+    if not player.Character then return end
+
+    local esp = player.Character:FindFirstChild("ESP")
+    local label = esp and esp:FindFirstChild("StatsLabel")
+    local highlight = player.Character:FindFirstChild("BodyHighlight")
+    local tracerBeam = player.Character:FindFirstChild("TracerBeam")
+
+    if not (label and highlight) then return end
+
+    local pStats = player:FindFirstChild("PrivateStats")
+    local lStats = LocalPlayer:FindFirstChild("PrivateStats")
+    if not (pStats and lStats) then return end
+
+    local function stat(name)
+        return (pStats:FindFirstChild(name) and pStats[name].Value) or 0
+    end
+
+    local function localStat(name)
+        return (lStats:FindFirstChild(name) and lStats[name].Value) or 0
+    end
+
+    local pPP = stat("PsychicPower")
+    local pFS = stat("FistStrength")
+    local pBT = stat("BodyToughness")
+
+    local lPP = localStat("PsychicPower")
+    local lFS = localStat("FistStrength")
+    local lBT = localStat("BodyToughness")
+
+    -- Check if any stat of the other player is weaker (this enables tracer)
+    local canKill = false
+    if isWeaker(lPP, pPP) or isWeaker(lFS, pFS) or isWeaker(lBT, pBT) then
+        canKill = true
+    end
+
+    -- Color code based on comparison
+    local hexColor = canKill and "#00FF00" or "#FF0000"  -- Green if you can kill, Red if you can't
+    local color3 = canKill and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+
+    -- Distance between player and local player
+    local distance = (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+
+    -- Update stats label
+    local timeInServer = math.floor(tick() - (joinTimes[player] or tick()))
+    label.Text = string.format(
+        "<b><font color='%s'>%s</font></b>\nDistance: %.1f\nTime: %ss\nPP: %s\nFS: %s\nBT: %s",
+        hexColor,
+        player.Name,
+        distance,
+        timeInServer,
+        abbreviateNumber(pPP),
+        abbreviateNumber(pFS),
+        abbreviateNumber(pBT)
+    )
+
+    highlight.OutlineColor = color3
+
+    -- Update Tracer for players you can kill (weaker players)
+    if canKill and tracerBeam then
+        tracerBeam.Enabled = true
+        tracerBeam.Attachment0 = LocalPlayer.Character.HumanoidRootPart:FindFirstChild("RootAttachment") or LocalPlayer.Character.HumanoidRootPart:FindFirstChild("HumanoidRootPart")
+        tracerBeam.Attachment1 = player.Character.HumanoidRootPart:FindFirstChild("RootAttachment") or player.Character.HumanoidRootPart:FindFirstChild("HumanoidRootPart")
+    elseif tracerBeam then
+        tracerBeam.Enabled = false  -- Disable tracer if you can't kill them
+    end
+end
+
+-- CLEANUP
+Players.PlayerRemoving:Connect(function(player)
+    if player.Character then
+        local esp = player.Character:FindFirstChild("ESP")
+        local hl = player.Character:FindFirstChild("BodyHighlight")
+        local tracerBeam = player.Character:FindFirstChild("TracerBeam")
+        if esp then esp:Destroy() end
+        if hl then hl:Destroy() end
+        if tracerBeam then tracerBeam:Destroy() end
+    end
+end)
+
+-- LOOP
+RunService.Heartbeat:Connect(function()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            createESP(player)
+            updateESP(player)
+        end
+    end
+end)
+
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        wait(1)
+        createESP(player)
+    end)
+end)
+-- https://github.com/ShockerLL22/spts-classic // created by @sky4zprm (dc)
+local vim = game:GetService("VirtualInputManager")
+local player = game:GetService("Players").LocalPlayer
+local button = player:WaitForChild("PlayerGui"):WaitForChild("IntroGui"):FindFirstChild("PlayBtn")
+
+if button then
+    local screenGui = button.Parent
+    local screenSize = screenGui.AbsoluteSize
+    button.Size = UDim2.new(1, 0, 1, 0) 
+    button.Position = UDim2.new(0, 0, 0, 0)
+    button.ZIndex = 10 
+    local clickPos = Vector2.new(0, screenSize.Y / 2)
+    vim:SendMouseButtonEvent(clickPos.X, clickPos.Y, 0, true, game, 0)
+    task.wait(0.1)
+    vim:SendMouseButtonEvent(clickPos.X, clickPos.Y, 0, false, game, 0)
+end
+task.wait(1)
+local Services = setmetatable({}, {__index = function(self, Name)
+    local Service = cloneref(game:GetService(Name))
+    self[Name] = Service
+    return Service
+end})
+local ReplicatedStorage = Services.ReplicatedStorage
+local RemoteEvent = ReplicatedStorage.RemoteEvent
+local RemoteFunction = ReplicatedStorage.RemoteFunction
+local RunService = Services.RunService
+local UserInputService = Services.UserInputService
+local TeleportService = Services.TeleportService
+local HttpService = Services.HttpService 
+local TweenService = Services.TweenService
+local Lighting = Services.Lighting
+local Stats = Services.Stats
+local StarterGui = Services.StarterGui
+local VirtualUser = Services.VirtualUser
+local Workspace = Services.Workspace
+local CoreGui = Services.CoreGui
+local Players = Services.Players
+local LocalPlayer = Players.LocalPlayer
+local PrivateStats = LocalPlayer.PrivateStats
+local PlayerGui = LocalPlayer.PlayerGui
+local ScreenGui = PlayerGui.ScreenGui
+local Camera = Workspace.CurrentCamera
+local Storage = Workspace.Storage
+local PlaceId = game.PlaceId
+local JobId = game.JobId
+repeat wait() until game:IsLoaded() and game.Players and game.Players.LocalPlayer and game.Players.LocalPlayer.Character
+
+if getgenv().AntiAfkExecuted then 
+    getgenv().AntiAfkExecuted = false
+end
+
+getgenv().AntiAfkExecuted = true
+
+local virtualUser = game:service'VirtualUser'
+game:service'Players'.LocalPlayer.Idled:connect(function()
+    virtualUser:CaptureController()
+    virtualUser:ClickButton2(Vector2.new())
+end)
+PlayerGui.IntroGui:GetPropertyChangedSignal("Enabled"):Connect(function()
+    PlayerGui.IntroGui.Enabled = false
+end)
+
+Lighting.Blur:GetPropertyChangedSignal("Enabled"):Connect(function()
+    Lighting.Blur.Enabled = false
+end)
+
+ScreenGui:GetPropertyChangedSignal("Enabled"):Connect(function()
+    ScreenGui.Enabled = true
+end)
+
+local Fluent = loadstring(game:HttpGet("https://raw.githubusercontent.com/ShockerLL22/fluentbackxd/refs/heads/main/fluent-plus.lua"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/ShockerLL22/fluentbackxd/refs/heads/main/savemanager.lua"))()
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/ShockerLL22/fluentbackxd/refs/heads/main/interfacemanager.lua"))()
+local Window = Fluent:CreateWindow({
+	Title = "spts : classic",
+	SubTitle = "-- https://github.com/ShockerLL22/spts-classic",
+	TabWidth = 160,
+	Size = UDim2.fromOffset(580, 470),
+	Acrylic = true,
+	Theme = "Bloody",
+	MinimizeKey = Enum.KeyCode.LeftControl
+})
+local Tabs = {
+	Main = Window:AddTab({Title = "Main", Icon = "home"}),
+	FistStrength = Window:AddTab({Title = "Fist Strength", Icon = "hand"}),
+	PhysicPower = Window:AddTab({Title = "Physic Power", Icon = "wifi"}),
+	BodyToughness = Window:AddTab({Title = "Body Toughness", Icon = "shield-check"}),
+    SpeedJump = Window:AddTab({Title = "Speed & Jump Power", Icon = "rocket"}),
+    AutoKill = Window:AddTab({Title = "Auto Kill", Icon = "skull"}),
+    Exploits = Window:AddTab({Title = "Fun & Exploits", Icon = "bomb"}),
+    Quests = Window:AddTab({Title = "Auto Quest", Icon = "file-question"}),
+    Webhook = Window:AddTab({Title = "Webhook", Icon = "webhook"}),
+	Settings = Window:AddTab({Title = "Visuals", Icon = "sun-moon"}),
+    Settings2 = Window:AddTab({Title = "Settings", Icon = "settings"})
+}
+local Options = Fluent.Options
+Fluent:Notify({Title = "Module", Content = "The script has been loaded.", Duration = 3})
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local lastPos
+local themeOptions = {
+		"Dark",
+		"Darker",
+		"Light",
+		"Balloon",
+		"SoftCream",
+		"Aqua", 
+		"Amethyst",
+		"Rose",
+		"Midnight",
+		"Forest",
+		"Sunset", 
+		"Ocean",
+		"Emerald",
+		"Sapphire",
+		"Cloud",
+		"Grape",
+        "Bloody"
+	}
+local ThemeDropdown = Tabs.Settings2:AddDropdown("ThemeSelector", {
+	Title = "UI Theme",
+	Values = themeOptions,
+	Multi = false,
+	Default = themeOptions[1],
+    Description = "crazy colors for the ui"
+})
+ThemeDropdown:OnChanged(function(selected)
+	Fluent:SetTheme(selected)
+	print("Theme changed to:", selected)
+end)
+local AntiLagToggle = Tabs.Main:AddToggle("AntiLagToggle", {
+    Title = "Anti Lag",
+    Default = false,
+    Description = "Enables performance optimizations by disabling unnecessary effects."
+})
+local originalProperties = {}
+
+AntiLagToggle:OnChanged(function(isOn)
+    if isOn then
+        if game.Lighting and not originalProperties.Lighting then
+            originalProperties.Lighting = {
+                GlobalShadows = game.Lighting.GlobalShadows,
+                FogEnd = game.Lighting.FogEnd,
+                Ambient = game.Lighting.Ambient,
+            }
+        end
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") then
+                if originalProperties[obj] == nil then
+                    originalProperties[obj] = { Enabled = obj.Enabled }
+                end
+                obj.Enabled = false
+            end
+            if obj:IsA("MeshPart") then
+                if originalProperties[obj] == nil then
+                    originalProperties[obj] = { Color = obj.Color, CastShadow = obj.CastShadow }
+                end
+                obj.Color = Color3.new(0.5, 0.5, 0.5)
+                obj.CastShadow = false
+            elseif obj:IsA("BasePart") then
+                if originalProperties[obj] == nil then
+                    originalProperties[obj] = { CastShadow = obj.CastShadow }
+                end
+                obj.CastShadow = false
+            end
+        end
+        if game.Lighting then
+            game.Lighting.GlobalShadows = false
+            game.Lighting.FogEnd = 9e9
+            game.Lighting.Ambient = Color3.new(0.5, 0.5, 0.5)
+        end
+    else
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            local orig = originalProperties[obj]
+            if orig then
+                if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") then
+                    if orig.Enabled ~= nil then
+                        obj.Enabled = orig.Enabled
+                    end
+                end
+                if obj:IsA("MeshPart") then
+                    if orig.Color then
+                        obj.Color = orig.Color
+                    end
+                    if orig.CastShadow ~= nil then
+                        obj.CastShadow = orig.CastShadow
+                    end
+                elseif obj:IsA("BasePart") then
+                    if orig.CastShadow ~= nil then
+                        obj.CastShadow = orig.CastShadow
+                    end
+                end
+            end
+        end
+        if game.Lighting and originalProperties.Lighting then
+            game.Lighting.GlobalShadows = originalProperties.Lighting.GlobalShadows
+            game.Lighting.FogEnd = originalProperties.Lighting.FogEnd
+            game.Lighting.Ambient = originalProperties.Lighting.Ambient
+        end
+        originalProperties = {}
+    end
+end)
+local modeOptions = {"No Area Physic Farm", "With Fly", "First Area 1M", "Second Area 1B", "Third Area 1T", "Final Area 1QA"}
+local commandMapping = {
+	["No Area Physic Farm"] = "+PP1",
+	["With Fly"] = "+PP2",
+	["First Area 1M"] = "+PP3",
+	["Second Area 1B"] = "+PP4",
+	["Third Area 1T"]= "+PP5",
+	["Final Area 1QA"] = "+PP6"
+}
+local areaLocations = {
+	["First Area 1M"] = Vector3.new(-2530, 5486, -535),
+	["Second Area 1B"] = Vector3.new(-2561, 5501, -444),
+	["Third Area 1T"] = Vector3.new(-2583, 5517, -502),
+	["Final Area 1QA"] = Vector3.new(-2553, 5413, -490)
+}
+local PhysicModeDropdown = Tabs.PhysicPower:AddDropdown("PhysicMode", {
+	Title = "Physic Power Area",
+	Values = modeOptions,
+	Multi = false,
+	Default = modeOptions[1]
+})
+PhysicModeDropdown:SetValue(modeOptions[1])
+PhysicModeDropdown:OnChanged(function(selected)
+	print("Physic Mode changed:", selected)
+end)
+
+local FarmPSToggle = Tabs.PhysicPower:AddToggle("FarmPSToggle", {
+	Title = "Farm Physic Power [ 1.4x ]",
+	Default = false,
+	Description = "Farming Physic Power, Faster Than Usual Legit Farming."
+})
+FarmPSToggle:OnChanged(function(isOn)
+    if isOn then
+        local remote = game:GetService("ReplicatedStorage"):FindFirstChild("RemoteEvent")
+        if not remote then return end
+
+        local selectedMode = PhysicModeDropdown.Value
+        local command = commandMapping[selectedMode] or "+PP1"
+
+        task.spawn(function()
+            while FarmPSToggle.Value do
+                if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and areaLocations[selectedMode] then
+                    player.Character.HumanoidRootPart.CFrame = CFrame.new(areaLocations[selectedMode])
+                end
+                local args = { [1] = { [1] = command } }
+                remote:FireServer(unpack(args))
+                local invisArgs = { [1] = { [1] = "Skill_Invisible", [2] = "Start" } }
+                remote:FireServer(unpack(invisArgs))
+                task.wait(0.0000001)
+            end
+        end)
+
+        task.spawn(function()
+            while FarmPSToggle.Value do
+                local tool = player.Backpack:FindFirstChild("Meditate") or player.Character:FindFirstChild("Meditate")
+                if tool then
+                    if tool.Parent == player.Backpack then
+                        tool.Parent = player.Character
+                    else
+                        tool.Parent = player.Backpack
+                    end
+                end
+                task.wait(0.009)
+            end
+        end)
+    end
+end)
+
+local AutoRespawnToggle = Tabs.Main:AddToggle("AutoRespawnToggle", {
+    Title = "Auto Respawn [ 35% Health ]",
+    Default = false,
+    Description = "Auto Respawns when 35% health or lower."
+})
+AutoRespawnToggle:OnChanged(function(isOn)
+    if isOn then
+        task.spawn(function()
+            while AutoRespawnToggle.Value do
+                local character = player.Character
+                if character then
+                    local humanoid = character:FindFirstChildOfClass("Humanoid")
+                    if humanoid and humanoid.MaxHealth > 0 and humanoid.Health <= (humanoid.MaxHealth * 0.35) then
+                        local args = { [1] = { [1] = "Respawn" } }
+                        game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):FireServer(unpack(args))
+                    end
+                end
+                task.wait(0.45)
+            end
+        end)
+    end
+end)
+
+local fsOptions = {"No Area", "Rock Area", "Crystal Area", "Blue God Star", "Green God Star", "Red God Star"}
+local fsMapping = {
+	["No Area"] = "+FS1",
+	["Rock Area"] = "+FS2",
+	["Crystal Area"] = "+FS3",
+	["Blue God Star"] = "+FS4",
+	["Green God Star"] = "+FS5",
+	["Red God Star"] = "+FS6"
+}
+local tpMapping = {
+	["Blue God Star"] = Vector3.new(1177, 4789, -2297),
+	["Green God Star"] = Vector3.new(1378, 9274, 1647),
+	["Red God Star"] = Vector3.new(-366, 15735, -11)
+}
+local fsDropdown = Tabs.FistStrength:AddDropdown("FistStrengthArea", {
+	Title = "Fist Strength Area",
+	Values = fsOptions,
+	Multi = false,
+	Default = fsOptions[1]
+})
+local FarmFSToggle = Tabs.FistStrength:AddToggle("FarmFSToggle", {
+	Title = "Farm Fist Strength [ 1.2x ]",
+	Default = false,
+	Description = "Farms Fist Strength, 1.2x Faster Than Usual Legit Farming."
+})
+FarmFSToggle:OnChanged(function(isOn)
+	if isOn then
+		local remote = game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent")
+		task.spawn(function()
+			while FarmFSToggle.Value do
+				local selectedFS = fsDropdown.Value
+				local command = fsMapping[selectedFS]
+				if command then
+					local args = { [1] = { [1] = command } }
+					remote:FireServer(unpack(args))
+				end
+				if tpMapping[selectedFS] and game.Players.LocalPlayer and game.Players.LocalPlayer.Character then
+					local hrp = game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+					if hrp then
+						hrp.CFrame = CFrame.new(tpMapping[selectedFS])
+					end
+				end
+				task.wait()
+			end
+		end)
+	end
+end)
+local btOptions = {"No Area Farming", "Ice Bath", "Fire Bath", "IceBerg", "Tornado", "Volcano", "Hell Fire Pit", "Green Acid Pool", "Red Acid Pool"}
+local btLocations = {
+	["Ice Bath"] = Vector3.new(364, 250, -446),
+	["Fire Bath"] = Vector3.new(355, 264, -493),
+	["IceBerg"] = Vector3.new(1638, 259, 2248),
+	["Tornado"] = Vector3.new(-2300, 977, 1075),
+	["Volcano"] = Vector3.new(-1981, 714, -1921),
+	["Hell Fire Pit"] = Vector3.new(-246, 287, 984),
+	["Green Acid Pool"] = Vector3.new(-269, 281, 988),
+	["Red Acid Pool"] = Vector3.new(-269, 282, 1007)
+}
+local btDropdown = Tabs.BodyToughness:AddDropdown("BTLocation", {
+	Title = "Body Toughness Area",
+	Values = btOptions,
+	Multi = false,
+	Default = btOptions[1]
+})
+
+local FarmBTToggle = Tabs.BodyToughness:AddToggle("FarmBTToggle", {
+	Title = "Farm Body Toughness [ 1.0x ]",
+	Default = false,
+    Description = "Farming Body Toughness, can be very fast if used correctly."
+})
+
+FarmBTToggle:OnChanged(function(isOn)
+	if isOn then
+		task.spawn(function()
+			while FarmBTToggle.Value do
+				if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+					local selectedBT = btDropdown.Value
+					if selectedBT == "No Area Farming" then
+						local args = { { "+BT1" } }
+						game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):FireServer(unpack(args))
+					else
+						local loc = btLocations[selectedBT]
+						if loc then
+							player.Character.HumanoidRootPart.CFrame = CFrame.new(loc)
+						end
+					end
+				end
+				task.wait()
+			end
+		end)
+	end
+end)
+local DeathGrindingToggle = Tabs.BodyToughness:AddToggle("DeathGrindingToggle", {
+	Title = "BodyToughness Death Farming",
+	Default = false,
+	Description = "turn on auto respawn in order to be effective. this autofarm is heavily reccomended to use. its the fastest, and most powerful."
+})
+DeathGrindingToggle:OnChanged(function(isOn)
+	if isOn then
+		task.spawn(function()
+			while DeathGrindingToggle.Value do
+				local bt = player.PrivateStats.BodyToughness.Value
+				if bt >= 5 and bt < 500 then
+					if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+						player.Character.HumanoidRootPart.CFrame = CFrame.new(btLocations["Ice Bath"])
+					end
+				elseif bt >= 500 and bt < 5000 then
+					if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+						player.Character.HumanoidRootPart.CFrame = CFrame.new(btLocations["Fire Bath"])
+					end
+				elseif bt >= 5000 and bt < 50000 then
+					if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+						player.Character.HumanoidRootPart.CFrame = CFrame.new(btLocations["IceBerg"])
+					end
+				elseif bt >= 50000 and bt < 500000 then
+					if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+						player.Character.HumanoidRootPart.CFrame = CFrame.new(btLocations["Tornado"])
+					end
+				elseif bt >= 500000 and bt < 50000000 then
+					if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+						player.Character.HumanoidRootPart.CFrame = CFrame.new(btLocations["Volcano"])
+					end
+				elseif bt >= 50000000 and bt < 5000000000 then
+					if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+						player.Character.HumanoidRootPart.CFrame = CFrame.new(btLocations["Hell Fire Pit"])
+					end
+				elseif bt >= 5000000000 and bt < 500000000000 then
+					if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+						player.Character.HumanoidRootPart.CFrame = CFrame.new(btLocations["Green Acid Pool"])
+					end
+				elseif bt >= 500000000000 then
+					if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+						player.Character.HumanoidRootPart.CFrame = CFrame.new(btLocations["Red Acid Pool"])
+					end
+				end
+				task.wait()
+			end
+		end)
+	end
+end)
+local FarmJFToggle = Tabs.SpeedJump:AddToggle("FarmJFToggle", {
+    Title = "Farm Jump Force",
+    Default = false,
+    Description = "Farms Jump Force with 100 tons, without actually having the requirement."
+})
+
+FarmJFToggle:OnChanged(function(isOn)
+    if isOn then
+        task.spawn(function()
+            local remote = game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent")
+            while FarmJFToggle.Value do
+                local args1 = { [1] = { [1] = "+JF5" } }
+                remote:FireServer(unpack(args1))
+                local args2 = { [1] = { [1] = "Weight", [2] = "Weight4" } }
+                remote:FireServer(unpack(args2))
+                task.wait()
+            end
+        end)
+    end
+end)
+
+local FarmMSToggle = Tabs.SpeedJump:AddToggle("FarmMSToggle", {
+    Title = "Farm Movement Speed ",
+    Default = false,
+    Description = "Farms Movement Speed with 100 tons, without actually having the requirement."
+})
+
+FarmMSToggle:OnChanged(function(isOn)
+    if isOn then
+        task.spawn(function()
+            local remote = game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent")
+            while FarmMSToggle.Value do
+                local args1 = { [1] = { [1] = "+MS5" } }
+                remote:FireServer(unpack(args1))
+                local args2 = { [1] = { [1] = "Weight", [2] = "Weight4" } }
+                remote:FireServer(unpack(args2))
+                task.wait()
+            end
+        end)
+    end
+end)
+local function arraysEqual(a, b)
+    if #a ~= #b then return false end
+    for i = 1, #a do
+        if a[i] ~= b[i] then return false end
+    end
+    return true
+end
+local SoulAttackDropdown = Tabs.PhysicPower:AddDropdown("SoulAttackDropdown", {
+    Title = "Players",
+    Values = {},
+    Multi = false,
+    Default = ""
+})
+local previousSoulNames = {}
+local function updateSoulAttackDropdown()
+    local players = game:GetService("Players"):GetPlayers()
+    local names = {}
+    for _, plr in ipairs(players) do
+        table.insert(names, plr.Name)
+    end
+    table.sort(names)
+    table.sort(previousSoulNames)
+    if arraysEqual(names, previousSoulNames) then
+        return
+    end
+    previousSoulNames = names
+    local currentSelection = SoulAttackDropdown.Value
+    SoulAttackDropdown:SetValues(names)
+    if table.find(names, currentSelection) then
+        SoulAttackDropdown:SetValue(currentSelection)
+    else
+        if #names > 0 then
+            SoulAttackDropdown:SetValue(names[1])
+        end
+    end
+end
+updateSoulAttackDropdown()
+Tabs.PhysicPower:AddButton({
+    Title = "Refresh Players",
+    Description = "Click to refresh the players list for Soul Attack.",
+    Callback = function()
+        updateSoulAttackDropdown()
+        Fluent:Notify({Title = "Players Updated", Content = "Soul Attack players list has been refreshed.", Duration = 2})
+    end
+})
+local SoulAttackToggle = Tabs.PhysicPower:AddToggle("SoulAttackToggle", {
+    Title = "Auto Soul Attack (B)",
+    Default = false,
+    Description = "Soul Attacking a person with b move."
+})
+SoulAttackToggle:OnChanged(function(isOn)
+    if isOn then
+        task.spawn(function()
+            while SoulAttackToggle.Value do
+                local targetName = SoulAttackDropdown.Value
+                local targetPlayer = game:GetService("Players"):WaitForChild(targetName)
+                local localPlayer = game:GetService("Players").LocalPlayer
+
+                if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("Humanoid") and
+                   localPlayer and localPlayer.Character and localPlayer.Character:FindFirstChild("Humanoid") then
+                   
+                    local targetHumanoid = targetPlayer.Character.Humanoid
+                    local localHumanoid = localPlayer.Character.Humanoid
+
+                    if targetHumanoid.Health > 0 and localHumanoid.Health > 0 then
+                        if targetPlayer.Character:FindFirstChild("HumanoidRootPart") and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                            localPlayer.Character.HumanoidRootPart.CFrame =
+                                targetPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -3)
+                        end
+                        local remote = game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent")
+                        local argsStart = { [1] = { [1] = "Skill_SoulAttack_Start", [2] = targetPlayer } }
+                        remote:FireServer(unpack(argsStart))
+                        local argsEnd = { [1] = { [1] = "Skill_SoulAttack_End" } }
+                        remote:FireServer(unpack(argsEnd))
+                    end
+                end
+
+                task.wait(0.1)
+            end
+        end)
+    end
+end)
+local PunchPlayerDropdown = Tabs.FistStrength:AddDropdown("PunchPlayers", {
+	Title = "Players",
+	Values = {},
+	Multi = false,
+	Default = ""
+})
+local previousPunchNames = {}
+
+local function updatePunchPlayerDropdown()
+	local players = game:GetService("Players"):GetPlayers()
+	local names = {}
+	for _, plr in ipairs(players) do
+		table.insert(names, plr.Name)
+	end
+	table.sort(names)
+	table.sort(previousPunchNames)
+	if arraysEqual(names, previousPunchNames) then
+		return
+	end
+	previousPunchNames = names
+	local currentSelection = PunchPlayerDropdown.Value
+	PunchPlayerDropdown:SetValues(names)
+	if table.find(names, currentSelection) then
+		PunchPlayerDropdown:SetValue(currentSelection)
+	else
+		if #names > 0 then
+			PunchPlayerDropdown:SetValue(names[1])
+		end
+	end
+end
+
+updatePunchPlayerDropdown()
+Tabs.FistStrength:AddButton({
+	Title = "Refresh Players",
+	Description = "Click to refresh the players list for Auto Punch.",
+	Callback = function()
+		updatePunchPlayerDropdown()
+		Fluent:Notify({Title = "Players Updated", Content = "Auto Punch players list has been refreshed.", Duration = 2})
+	end
+})
+
+local AutoPunchToggle = Tabs.FistStrength:AddToggle("AutoPunchToggle", {
+	Title = "Auto Punch (C)",
+	Default = false,
+    Description = "Kills automatically a person with a Punch C move."
+})
+AutoPunchToggle:OnChanged(function(isOn)
+	if isOn then
+		task.spawn(function()
+			while AutoPunchToggle.Value do
+				local targetName = PunchPlayerDropdown.Value
+				local targetPlayer = game:GetService("Players"):WaitForChild(targetName)
+				if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+					targetPlayer.Character.HumanoidRootPart.CFrame = player.Character.HumanoidRootPart.CFrame
+					local remote = game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent")
+					local args = { [1] = { [1] = "Skill_Punch", [2] = "Right" } }
+					remote:FireServer(unpack(args))
+				end
+				task.wait(0.01)
+			end
+		end)
+	end
+end)
+local function formatStat(n)
+    n = tonumber(n) or 0
+    local absVal = math.abs(n)
+    if absVal < 1e3 then
+        return tostring(n)
+    elseif absVal < 1e6 then
+        return string.format("%.2fK", n/1e3)
+    elseif absVal < 1e9 then
+        return string.format("%.2fM", n/1e6)
+    elseif absVal < 1e12 then
+        return string.format("%.2fB", n/1e9)
+    elseif absVal < 1e15 then
+        return string.format("%.2fT", n/1e12)
+    elseif absVal < 1e18 then
+        return string.format("%.2fQa", n/1e15)
+    else
+        return string.format("%.2fQi", n/1e18)
+    end
+end
+local webhookUrl = ""
+local WebhookInput = Tabs.Webhook:AddInput("WebhookUrl", {
+	Title = "Webhook URL",
+	Default = "",
+	Description = "discord feature"
+})
+WebhookInput:OnChanged(function(val)
+	webhookUrl = val
+end)
+
+local WebhookToggle = Tabs.Webhook:AddToggle("WebhookToggle", {
+	Title = "Enable Webhook",
+	Default = false,
+	Description = "If enabled, sends an embed with your stats (Alive Time, Body Toughness, Fist Strength, Physic Power, Tokens) every minute."
+})
+WebhookToggle:OnChanged(function(isOn)
+    if isOn then
+        task.spawn(function()
+            local colors = {
+                0x1ABC9C, 0x2ECC71, 0x3498DB, 0x9B59B6, 0x34495E,
+                0x16A085, 0x27AE60, 0x2980B9, 0x8E44AD, 0x2C3E50,
+                0xF1C40F, 0xE67E22, 0xE74C3C, 0xECF0F1, 0x95A5A6,
+                0xF39C12, 0xD35400, 0xC0392B, 0xBDC3C7, 0x7F8C8D
+            }
+            while WebhookToggle.Value do
+                if webhookUrl and webhookUrl ~= "" then
+                    local stats = player.PrivateStats
+                    local randomColor = colors[math.random(#colors)]
+                    local data = {
+                        ["content"] = "",
+                        ["embeds"] = {{
+                            ["title"] = player.Name .. " - Stats Update",
+                            ["description"] = "Here is the latest update on your stats.",
+                            ["color"] = randomColor,
+                            ["fields"] = {
+                                {["name"] = "Alive Time :hourglass:", ["value"] = tostring(stats.AliveTime.Value), ["inline"] = true},
+                                {["name"] = "Body Toughness :heart: :man_lifting_weights:", ["value"] = formatStat(stats.BodyToughness.Value), ["inline"] = true},
+                                {["name"] = "Fist Strength :muscle:", ["value"] = formatStat(stats.FistStrength.Value), ["inline"] = true},
+                                {["name"] = "Psychic Power :brain:", ["value"] = formatStat(stats.PsychicPower.Value), ["inline"] = true},
+                                {["name"] = "Tokens :skull:", ["value"] = tostring(stats.Token.Value), ["inline"] = true},
+                            },
+                            ["footer"] = {
+                                ["text"] = "Player: " .. player.Name,
+                            },
+                            ["timestamp"] = os.date("!%Y-%m-%dT%H:%M:%SZ")
+                        }},
+                    }
+                    local jsonData = game:GetService("HttpService"):JSONEncode(data)
+                    local headers = {["Content-Type"] = "application/json"}
+                    local requestData = {
+                        Url = webhookUrl,
+                        Method = "POST",
+                        Headers = headers,
+                        Body = jsonData
+                    }
+                    if request then
+                        request(requestData)
+                    elseif http_request then
+                        http_request(requestData)
+                    elseif syn and syn.request then
+                        syn.request(requestData)
+                    else
+                        warn("No valid HTTP request function available.")
+                    end
+                end
+                task.wait(60)
+            end
+        end)
+    end
+end)
+local dailyQuests = {
+    {"DLQ", "JF", "Claim"},
+    {"DLQ", "FS", "Claim"},
+    {"DLQ", "PP", "Claim"},
+    {"DLQ", "MS", "Claim"},
+    {"DLQ", "BT", "Claim"}
+}
+
+local weeklyQuests = {
+    {"WLQ", "FS1", "Claim"},
+    {"WLQ", "BT1", "Claim"},
+    {"WLQ", "PP1", "Claim"},
+    {"WLQ", "FS2", "Claim"},
+    {"WLQ", "BT2", "Claim"},
+    {"WLQ", "PP2", "Claim"},
+    {"WLQ", "FS3", "Claim"},
+    {"WLQ", "BT3", "Claim"},
+    {"WLQ", "FS4", "Claim"},
+    {"WLQ", "BT4", "Claim"},
+    {"WLQ", "PP3", "Claim"},
+    {"WLQ", "PP4", "Claim"}
+}
+
+local AutoClaimToggle = Tabs.Quests:AddToggle("AutoClaimToggle", {
+    Title = "Auto Claim Quests",
+    Default = false,
+    Description = "Automatically claim Daily and Weekly Quests."
+})
+
+AutoClaimToggle:OnChanged(function(isOn)
+    if isOn then
+        task.spawn(function()
+            while AutoClaimToggle.Value do
+                for _, quest in ipairs(dailyQuests) do
+                    local args = { quest }
+                    game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):FireServer(unpack(args))
+                    task.wait(0.5)  
+                end
+                for _, quest in ipairs(weeklyQuests) do
+                    local args = { quest }
+                    game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):FireServer(unpack(args))
+                    task.wait(0.5)
+                end
+                task.wait(1)  
+            end
+        end)
+    end
+end)
+Tabs.Exploits:AddButton({
+    Title = "GodMode Exploit",
+    Description = "Activate Godmode for the player using rider forcefield.",
+    Callback = function()
+        local VirtualInputManager = game:GetService("VirtualInputManager")
+        local Players = game:GetService("Players")
+        local RunService = game:GetService("RunService")
+        local player = Players.LocalPlayer
+        local character = player.Character or player.CharacterAdded:Wait()
+        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+        local camera = workspace.CurrentCamera
+        local shield = humanoidRootPart:FindFirstChild("GameModeShield")
+        local shield2 = character:FindFirstChild("HumanoidRootPart") and character.HumanoidRootPart:FindFirstChild("GameModeShield")
+
+        if not (character:FindFirstChild("ForceField") or shield) then
+            if humanoidRootPart then
+                humanoidRootPart.CFrame = CFrame.new(160, 249, 1234)
+            end
+
+            task.wait(2.5)
+
+            VirtualInputManager:SendMouseButtonEvent(1322, 166, 0, true, game, 0)
+            VirtualInputManager:SendMouseButtonEvent(1322, 166, 0, false, game, 0)
+
+            task.wait(1.7)
+
+            camera.CameraType = Enum.CameraType.Custom
+            camera.CFrame = CFrame.new(character.Head.Position + Vector3.new(0, 5, -10), player.Character.Head.Position)
+
+            local function enableTPWalk()
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing, false)
+                    while true do
+                        task.wait(0.01)
+                        if humanoid.MoveDirection.Magnitude > 0 then
+                            humanoidRootPart.CFrame = humanoidRootPart.CFrame + humanoid.MoveDirection * 2
+                        end
+                    end
+                end
+            end
+
+            enableTPWalk()
+        end
+    end
+})
+local RainbowRankToggle = Tabs.Exploits:AddToggle("RainbowRankToggle", {
+    Title = "Rainbow Rank",
+    Default = false,
+    Description = "Do I really need an explanation?"
+})
+
+RainbowRankToggle:OnChanged(function(isOn)
+    if isOn then
+        task.spawn(function()
+            while RainbowRankToggle.Value do
+                for rank = 1, 10 do
+                    if not RainbowRankToggle.Value then break end
+                    local args = {
+                        [1] = {
+                            [1] = "ChangeRankEmblem",
+                            [2] = rank
+                        }
+                    }
+                    game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):FireServer(unpack(args))
+                    task.wait(0.1)
+                end
+            end
+        end)
+    end
+end)
+local GuiService = game:GetService("GuiService")
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local player = Players.LocalPlayer
+
+local AutoReconnectToggle = Tabs.Main:AddToggle("AutoReconnectToggle", {
+    Title = "Auto Reconnect",
+    Default = false,
+    Description = "Automatically reconnects when error messages appear. does not work for private servers."
+})
+
+local errorConnection
+
+AutoReconnectToggle:OnChanged(function(isOn)
+    if isOn then
+        if not errorConnection then
+            errorConnection = GuiService.ErrorMessageChanged:Connect(function(errorMessage)
+                if errorMessage and errorMessage ~= "" then
+                    print("Error detected: " .. errorMessage)
+                    wait(0.1)  
+                    TeleportService:Teleport(game.PlaceId, player)
+                end
+            end)
+        end
+    else
+        if errorConnection then
+            errorConnection:Disconnect()
+            errorConnection = nil
+        end
+    end
+end)
+Tabs.Main:AddButton({
+    Title = "Save Config",
+    Description = "Save your current settings for the next server change session.",
+    Callback = function()
+        Window:Dialog({
+            Title = "Save Confirmation",
+            Content = "Do you want to save your current config?",
+            Buttons = {
+                {
+                    Title = "Confirm",
+                    Callback = function()
+                        SaveManager:Save("main")
+                        Fluent:Notify({
+                            Title = "Config Saved",
+                            Content = "Your settings have been saved successfully.",
+                            Duration = 3
+                        })
+                    end
+                },
+                {
+                    Title = "Cancel",
+                    Callback = function()
+                        Fluent:Notify({
+                            Title = "Action Cancelled",
+                            Content = "Save operation was cancelled.",
+                            Duration = 3
+                        })
+                    end
+                }
+            }
+        })
+    end
+})
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+local function abbreviateNumber(num)
+	local abbreviations = {"", "K", "M", "B", "T", "Qa", "Qi"}
+	local index = 1
+	while num >= 1000 and index < #abbreviations do
+		num = num / 1000
+		index = index + 1
+	end
+	return string.format("%.2f%s", num, abbreviations[index])
+end
+
+local function compareStat(localValue, remoteValue)
+	if remoteValue == 0 or localValue == 0 then
+		return "N/A", "#FFFFFF"
+	end
+	local ratio, color
+	if localValue > remoteValue then
+		ratio = localValue / remoteValue
+		color = "#00FF00"
+	elseif localValue < remoteValue then
+		ratio = remoteValue / localValue
+		color = "#FF0000"
+	else
+		ratio = 1
+		color = "#FFFFFF"
+	end
+	return string.format("x%.2f", ratio), color
+end
+
+local function updateESPForPlayer(player)
+	if not player.Character then return end
+	local head = player.Character:FindFirstChild("Head")
+	if not head then return end
+	local esp = player.Character:FindFirstChild("ESP")
+	if not esp then
+		esp = Instance.new("BillboardGui")
+		esp.Name = "ESP"
+		esp.Adornee = head
+		esp.Size = UDim2.new(8, 0, 3, 0)
+		esp.StudsOffset = Vector3.new(0, 4, 0)
+		esp.AlwaysOnTop = true
+		local label = Instance.new("TextLabel")
+		label.Name = "StatsLabel"
+		label.Size = UDim2.new(1, 0, 1, 0)
+		label.BackgroundTransparency = 1
+		label.TextScaled = true
+		label.TextSize = 30
+		label.RichText = true
+		label.Parent = esp
+		esp.Parent = player.Character
+	end
+	local label = esp:FindFirstChild("StatsLabel")
+	if not label then return end
+	local pStats = player:FindFirstChild("PrivateStats")
+	local lStats = LocalPlayer:FindFirstChild("PrivateStats")
+	if not (pStats and lStats) then return end
+	local pPsychic = pStats:FindFirstChild("PsychicPower")
+	local pFist = pStats:FindFirstChild("FistStrength")
+	local pBody = pStats:FindFirstChild("BodyToughness")
+	local lPsychic = lStats:FindFirstChild("PsychicPower")
+	local lFist = lStats:FindFirstChild("FistStrength")
+	local lBody = lStats:FindFirstChild("BodyToughness")
+	if not (pPsychic and pFist and pBody and lPsychic and lFist and lBody) then return end
+	local ppMulti, ppColor = compareStat(lPsychic.Value, pPsychic.Value)
+	local fsMulti, fsColor = compareStat(lFist.Value, pFist.Value)
+	local btMulti, btColor = compareStat(lBody.Value, pBody.Value)
+	local ppValue = abbreviateNumber(pPsychic.Value)
+	local fsValue = abbreviateNumber(pFist.Value)
+	local btValue = abbreviateNumber(pBody.Value)
+	local statsText = string.format(
+		"%s\nPP: %s (<font color='%s'>%s</font>)\nFS: %s (<font color='%s'>%s</font>)\nBT: %s (<font color='%s'>%s</font>)",
+		player.Name,
+		ppValue, ppColor, ppMulti,
+		fsValue, fsColor, fsMulti,
+		btValue, btColor, btMulti
+	)
+	label.Text = statsText
+end
+
+local ESPToggle = Tabs.Settings:AddToggle("ESPToggle", {
+	Title = "True Identity",
+	Default = true,
+	Description = "Display ESP for player stats with comparison, showing their true identity."
+})
+ESPToggle:OnChanged(function(isOn)
+	if not isOn then
+		for _, player in pairs(Players:GetPlayers()) do
+			if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("ESP") then
+				player.Character.ESP:Destroy()
+			end
+		end
+	end
+end)
+
+RunService.Heartbeat:Connect(function()
+	for _, player in pairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer then
+			if ESPToggle.Value then
+				updateESPForPlayer(player)
+			elseif player.Character and player.Character:FindFirstChild("ESP") then
+				player.Character.ESP:Destroy()
+			end
+		end
+	end
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+	if player.Character and player.Character:FindFirstChild("ESP") then
+		player.Character.ESP:Destroy()
+	end
+end)
+
+Players.PlayerAdded:Connect(function(player)
+	player.CharacterAdded:Connect(function(character)
+		if character:FindFirstChild("ESP") then
+			character.ESP:Destroy()
+		end
+	end)
+end)
+local Players = game:GetService("Players")
+local localPlayer = Players.LocalPlayer
+local function getNameTextLabel()
+    if localPlayer.Character then
+        local head = localPlayer.Character:FindFirstChild("Head")
+        if head then
+            local nameBbGui = head:FindFirstChild("NameBbGui")
+            if nameBbGui then
+                return nameBbGui:FindFirstChild("NameTxt")
+            end
+        end
+    end
+    return nil
+end
+local RainbowToggle = Tabs.Settings:AddToggle("RainbowToggle", {
+    Title = "Rainbow Name",
+    Default = false,
+    Description = "rainbow name for your username;)"
+})
+RainbowToggle:OnChanged(function(isOn)
+    if isOn then
+        task.spawn(function()
+            local hue = 0
+            while RainbowToggle.Value do
+                local textLabel = getNameTextLabel()
+                if textLabel then
+                    hue = (hue + 0.01) % 1
+                    textLabel.TextColor3 = Color3.fromHSV(hue, 1, 1)
+                end
+                task.wait(0.1)
+            end
+        end)
+    else
+        local textLabel = getNameTextLabel()
+        if textLabel then
+            textLabel.TextColor3 = Color3.new(1, 1, 1)  
+        end
+    end
+end)
+local RainbowLaserToggle = Tabs.Settings:AddToggle("RainbowLaserToggle", {
+    Title = "Rainbow Laser",
+    Default = false,
+    Description = "rainbow laser good good ye ye"
+})
+
+RainbowLaserToggle:OnChanged(function(isOn)
+    if isOn then
+        task.spawn(function()
+            local hue = 0
+            while RainbowLaserToggle.Value do
+                local part = workspace:FindFirstChild("Part")
+                if part then
+                    hue = (hue + 0.01) % 1
+                    part.Color = Color3.fromHSV(hue, 1, 1)
+                end
+                task.wait(0.0001)
+            end
+        end)
+    else
+        local part = workspace:FindFirstChild("Part")
+        if part then
+            part.Color = Color3.new(1, 1, 1) 
+        end
+    end
+end)
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local FinalRank = Tabs.Exploits:AddToggle("FinalRank", {
+    Title = "ClientSide Final Rank",
+    Default = false,
+    Description = "Do I really need an explanation?"
+})
+FinalRank:OnChanged(function(isOn)
+    if isOn then
+        task.spawn(function()
+            while FinalRank.Value do
+                local character = LocalPlayer.Character
+                if character then
+                    local head = character:FindFirstChild("Head")
+                    if head then
+                        local gui = head:FindFirstChild("RankBbGui")
+                        if gui then
+                            local img = gui:FindFirstChild("RankImg")
+                            if img then
+                                img.Image = "rbxassetid://2202378137"
+                            end
+                        end
+                    end
+                end
+                task.wait(1)
+            end
+        end)
+    end
+end)
+local KillAllAutoPunchToggle = Tabs.AutoKill:AddToggle("KillAllAutoPunchToggle", {
+	Title = "Kill All AutoPunch (C)",
+	Default = false,
+	Description = "Automatically punches every player whose BodyToughness is lower than your FistStrength"
+})
+KillAllAutoPunchToggle:OnChanged(function(isOn)
+	if isOn then
+		task.spawn(function()
+			while KillAllAutoPunchToggle.Value do
+				local players = game:GetService("Players"):GetPlayers()
+				for _, targetPlayer in ipairs(players) do
+					if not KillAllAutoPunchToggle.Value then break end
+					if targetPlayer ~= player and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+						if targetPlayer:FindFirstChild("PrivateStats") and player:FindFirstChild("PrivateStats") then
+							if targetPlayer.PrivateStats:FindFirstChild("BodyToughness") and player.PrivateStats:FindFirstChild("FistStrength") then
+								if targetPlayer.PrivateStats.BodyToughness.Value < player.PrivateStats.FistStrength.Value then
+									local startTime = tick()
+									while tick() - startTime < 0.001 and KillAllAutoPunchToggle.Value do
+										if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") and player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+											targetPlayer.Character.HumanoidRootPart.CFrame = player.Character.HumanoidRootPart.CFrame
+											local remote = game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent")
+											local args = { [1] = { [1] = "Skill_Punch", [2] = "Right" } }
+											remote:FireServer(unpack(args))
+										end
+										task.wait(0.000001)
+									end
+								end
+							end
+						end
+					end
+				end
+			end
+		end)
+	end
+end)
+local KillAllAutoSoulAttackToggle = Tabs.AutoKill:AddToggle("KillAllAutoSoulAttackToggle", {
+	Title = "Kill All Auto Soul Attack (B)",
+	Default = false,
+	Description = "Automatically soul attacks every player whose PhysicPower is lower than your PhysicPower "
+})
+KillAllAutoSoulAttackToggle:OnChanged(function(isOn)
+    if isOn then
+        task.spawn(function()
+            while KillAllAutoSoulAttackToggle.Value do
+                local players = game:GetService("Players"):GetPlayers()
+                for _, targetPlayer in ipairs(players) do
+                    if not KillAllAutoSoulAttackToggle.Value then break end
+                    local localPlayer = game:GetService("Players").LocalPlayer
+                    if targetPlayer ~= localPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") and localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                        local targetHumanoid = targetPlayer.Character:FindFirstChild("Humanoid")
+                        if targetHumanoid and targetHumanoid.Health > 0 then
+                            local targetPsychicPower = targetPlayer:FindFirstChild("PrivateStats") and targetPlayer.PrivateStats:FindFirstChild("PsychicPower")
+                            local localPsychicPower = localPlayer:FindFirstChild("PrivateStats") and localPlayer.PrivateStats:FindFirstChild("PsychicPower")
+                            
+                            if targetPsychicPower and localPsychicPower and targetPsychicPower.Value < localPsychicPower.Value then
+                                local startTime = tick()
+                                while tick() - startTime < 0.5 and KillAllAutoSoulAttackToggle.Value do
+                                    if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") and localPlayer and localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                                        localPlayer.Character.HumanoidRootPart.CFrame = targetPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -3)
+                                        local remote = game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent")
+                                        local argsStart = { [1] = { [1] = "Skill_SoulAttack_Start", [2] = targetPlayer } }
+                                        remote:FireServer(unpack(argsStart))
+                                        local argsEnd = { [1] = { [1] = "Skill_SoulAttack_End" } }
+                                        remote:FireServer(unpack(argsEnd))
+                                    end
+                                    task.wait(0.001)
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end)
+    end
+end)
+local AutoKillRStackingToggle = Tabs.AutoKill:AddToggle("AutoKillRStackingToggle", {
+	Title = "Kill All R Stacking (R)",
+	Default = false,
+	Description = "Automatically stacks energy spheres and sends sphere punch remote"
+})
+AutoKillRStackingToggle:OnChanged(function(isOn)
+	if isOn then
+		local players = game:GetService("Players")
+		local replicatedStorage = game:GetService("ReplicatedStorage")
+		local storage = workspace:FindFirstChild("Storage")
+		local localPlayer = players.LocalPlayer
+		local localChar = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+		local localStats = localPlayer:WaitForChild("PrivateStats")
+		local localFistStrength = localStats:WaitForChild("FistStrength").Value
+		if not storage then return end
+
+		spawn(function()
+			while AutoKillRStackingToggle.Value do
+				replicatedStorage:WaitForChild("RemoteEvent"):FireServer({"Skill_SpherePunch", Vector3.new(0, 1e20, 0)})
+				task.wait(0.05)
+			end
+		end)
+
+		spawn(function()
+			while AutoKillRStackingToggle.Value do
+				local Targets = {}
+				for _, player in ipairs(players:GetPlayers()) do
+					if player ~= localPlayer then
+						local char = player.Character
+						if char and char:FindFirstChildOfClass("Humanoid") and char.Humanoid.Health > 0 then
+							local torso = char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
+							local targetStats = player:FindFirstChild("PrivateStats")
+							if torso and targetStats then
+								local targetBodyToughness = targetStats:FindFirstChild("BodyToughness")
+								if targetBodyToughness and (targetBodyToughness.Value < localFistStrength * 1.1) then
+									table.insert(Targets, player)
+								end
+							end
+						end
+					end
+				end
+				for _, Target in pairs(Targets) do
+					task.spawn(function()
+						if Target.Character and Target.Character:FindFirstChild("HumanoidRootPart") then
+							Target.Character.HumanoidRootPart.CFrame = CFrame.new(0, 1e5, 0)
+							for _, sphere in pairs(storage:GetChildren()) do
+								if not localPlayer.Character:FindFirstChild("GodModeShield") and not localPlayer.Character:FindFirstChild("GodModeShield ") and not localPlayer.Character:FindFirstChild("ForceField") and not localPlayer.Character:FindFirstChild("SafeZoneShield") then
+									task.spawn(function()
+										firetouchinterest(Target.Character.HumanoidRootPart, sphere, 0)
 									end)
 SaveManager:SetLibrary(Fluent)
 InterfaceManager:SetLibrary(Fluent)
@@ -2597,6 +5188,270 @@ Window:SelectTab(1)
 Fluent:Notify({Title = "spts : classic", Content = "!", Duration = 2})
 SaveManager:Load("main")
 SaveManager:LoadAutoloadConfig()
+
+ShowLocation.Name = "ShowLocation"
+ShowLocation.Parent = WayPointsFrame
+ShowLocation.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+ShowLocation.TextColor3 = Color3.new(1, 1, 1)
+ShowLocation.BorderColor3 = Color3.new(0, 0, 0)
+ShowLocation.Position = UDim2.new(0, 5, 0, 5)
+ShowLocation.Size = UDim2.new(0, 170, 0, 20)
+ShowLocation.Font = Enum.Font.Fantasy
+ShowLocation.Text = "Current Location"
+ShowLocation.TextWrapped = true
+ShowLocation.TextSize = 15
+
+SetLocation.Name = "SetLocation"
+SetLocation.Parent = WayPointsFrame
+SetLocation.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+SetLocation.TextColor3 = Color3.new(1, 1, 1)
+SetLocation.BorderColor3 = Color3.new(0.6, 0.6, 0.6)
+SetLocation.Position = UDim2.new(0, 180, 0, 5)
+SetLocation.Size = UDim2.new(0, 120, 0, 20)
+SetLocation.Font = Enum.Font.Fantasy
+SetLocation.Text = "Set Location"
+SetLocation.TextWrapped = true
+SetLocation.TextSize = 16
+
+TPLocation.Name = "TPLocation"
+TPLocation.Parent = WayPointsFrame
+TPLocation.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+TPLocation.TextColor3 = Color3.new(1, 1, 1)
+TPLocation.BorderColor3 = Color3.new(0.6, 0.6, 0.6)
+TPLocation.Position = UDim2.new(0, 305, 0, 5)
+TPLocation.Size = UDim2.new(0, 65, 0, 20)
+TPLocation.Font = Enum.Font.Fantasy
+TPLocation.Text = "Tp to"
+TPLocation.TextWrapped = true
+TPLocation.TextSize = 16
+
+Location1.Name = "Location1"
+Location1.Parent = WayPointsFrame
+Location1.BackgroundColor3 = Color3.new(255/255, 94/255, 40/255)
+Location1.TextColor3 = Color3.new(1, 1, 1)
+Location1.BorderColor3 = Color3.new(0.6, 0.6, 0.6)
+Location1.Position = UDim2.new(0, 5, 0, 30)
+Location1.Size = UDim2.new(0, 365, 0, 20)
+Location1.Font = Enum.Font.Fantasy
+Location1.Text = "Teleport to Safe Zone"
+Location1.TextWrapped = true
+Location1.TextSize = 16
+
+Location2.Name = "Location2"
+Location2.Parent = WayPointsFrame
+Location2.BackgroundColor3 = Color3.new(70/255, 105/255, 0)
+Location2.TextColor3 = Color3.new(1, 1, 1)
+Location2.BorderColor3 = Color3.new(0.6, 0.6, 0.6)
+Location2.Position = UDim2.new(0, 5, 0, 55)
+Location2.Size = UDim2.new(0, 365, 0, 20)
+Location2.Font = Enum.Font.Fantasy
+Location2.Text = "Teleport to Rock [10x Fist Strength]"
+Location2.TextWrapped = true
+Location2.TextSize = 16
+
+Location7.Name = "Location7"
+Location7.Parent = WayPointsFrame
+Location7.BackgroundColor3 = Color3.new(70/255, 105/255, 0)
+Location7.TextColor3 = Color3.new(1, 1, 1)
+Location7.BorderColor3 = Color3.new(0.6, 0.6, 0.6)
+Location7.Position = UDim2.new(0, 5, 0, 80)
+Location7.Size = UDim2.new(0, 365, 0, 20)
+Location7.Font = Enum.Font.Fantasy
+Location7.Text = "Teleport to Crystal [100x Fist Strength]"
+Location7.TextWrapped = true
+Location7.TextSize = 16
+
+LocationFS1B.Name = "LocationFS1B"
+LocationFS1B.Parent = WayPointsFrame
+LocationFS1B.BackgroundColor3 = Color3.new(70/255, 105/255, 0)
+LocationFS1B.TextColor3 = Color3.new(1, 1, 1)
+LocationFS1B.BorderColor3 = Color3.new(0.6, 0.6, 0.6)
+LocationFS1B.Position = UDim2.new(0, 5, 0, 105)
+LocationFS1B.Size = UDim2.new(0, 365, 0, 20)
+LocationFS1B.Font = Enum.Font.Fantasy
+LocationFS1B.Text = "Teleport to Blue Star [2k x FS]: 1B+ FS required"
+LocationFS1B.TextWrapped = true
+LocationFS1B.TextSize = 16
+
+LocationFS100B.Name = "LocationFS100B"
+LocationFS100B.Parent = WayPointsFrame
+LocationFS100B.BackgroundColor3 = Color3.new(70/255, 105/255, 0)
+LocationFS100B.TextColor3 = Color3.new(1, 1, 1)
+LocationFS100B.BorderColor3 = Color3.new(0.6, 0.6, 0.6)
+LocationFS100B.Position = UDim2.new(0, 5, 0, 130)
+LocationFS100B.Size = UDim2.new(0, 365, 0, 20)
+LocationFS100B.Font = Enum.Font.Fantasy
+LocationFS100B.Text = "Teleport to Green Star [40k x FS]: 100B+ FS required"
+LocationFS100B.TextWrapped = true
+LocationFS100B.TextSize = 16
+
+LocationFS10T.Name = "LocationFS10T"
+LocationFS10T.Parent = WayPointsFrame
+LocationFS10T.BackgroundColor3 = Color3.new(70/255, 105/255, 0)
+LocationFS10T.TextColor3 = Color3.new(1, 1, 1)
+LocationFS10T.BorderColor3 = Color3.new(0.6, 0.6, 0.6)
+LocationFS10T.Position = UDim2.new(0, 5, 0, 155)
+LocationFS10T.Size = UDim2.new(0, 365, 0, 20)
+LocationFS10T.Font = Enum.Font.Fantasy
+LocationFS10T.Text = "Teleport to Orange Star [800k x FS]: 10T+ FS required"
+LocationFS10T.TextWrapped = true
+LocationFS10T.TextSize = 16
+
+Location3.Name = "Location3"
+Location3.Parent = WayPointsFrame
+Location3.BackgroundColor3 = Color3.new(66/255, 0, 165/255)
+Location3.TextColor3 = Color3.new(1, 1, 1)
+Location3.BorderColor3 = Color3.new(0.6, 0.6, 0.6)
+Location3.Position = UDim2.new(0, 5, 0, 180)
+Location3.Size = UDim2.new(0, 365, 0, 20)
+Location3.Font = Enum.Font.Fantasy
+Location3.Text = "Tp to City Port Training 1 [5x BT]: 100+ BT required"
+Location3.TextWrapped = true
+Location3.TextSize = 16
+
+Location4.Name = "Location4"
+Location4.Parent = WayPointsFrame
+Location4.BackgroundColor3 = Color3.new(66/255, 0, 165/255)
+Location4.TextColor3 = Color3.new(1, 1, 1)
+Location4.BorderColor3 = Color3.new(0.6, 0.6, 0.6)
+Location4.Position = UDim2.new(0, 5, 0, 205)
+Location4.Size = UDim2.new(0, 365, 0, 20)
+Location4.Font = Enum.Font.Fantasy
+Location4.Text = "Tp to City Port Training 2 [10x BT]: 10k+ BT required"
+Location4.TextWrapped = true
+Location4.TextSize = 16
+
+Location5.Name = "Location5"
+Location5.Parent = WayPointsFrame
+Location5.BackgroundColor3 = Color3.new(66/255, 0, 165/255)
+Location5.TextColor3 = Color3.new(1, 1, 1)
+Location5.BorderColor3 = Color3.new(0.6, 0.6, 0.6)
+Location5.Position = UDim2.new(0, 5, 0, 230)
+Location5.Size = UDim2.new(0, 365, 0, 20)
+Location5.Font = Enum.Font.Fantasy
+Location5.Text = "Tp to Ice Mountain [20x BT]: 100k+ BT required"
+Location5.TextWrapped = true
+Location5.TextSize = 16
+
+Location6.Name = "Location6"
+Location6.Parent = WayPointsFrame
+Location6.BackgroundColor3 = Color3.new(66/255, 0, 165/255)
+Location6.TextColor3 = Color3.new(1, 1, 1)
+Location6.BorderColor3 = Color3.new(0.6, 0.6, 0.6)
+Location6.Position = UDim2.new(0, 5, 0, 255)
+Location6.Size = UDim2.new(0, 365, 0, 20)
+Location6.Font = Enum.Font.Fantasy
+Location6.Text = "Tp to Tornado [50x BT]: 1M+ BT required"
+Location6.TextWrapped = true
+Location6.TextSize = 16
+
+Location8.Name = "Location8"
+Location8.Parent = WayPointsFrame
+Location8.BackgroundColor3 = Color3.new(66/255, 0, 165/255)
+Location8.TextColor3 = Color3.new(1, 1, 1)
+Location8.BorderColor3 = Color3.new(0.6, 0.6, 0.6)
+Location8.Position = UDim2.new(0, 5, 0, 280)
+Location8.Size = UDim2.new(0, 365, 0, 20)
+Location8.Font = Enum.Font.Fantasy
+Location8.Text = "Tp to Volcano [100x BT]: 10M+ BT required"
+Location8.TextWrapped = true
+Location8.TextSize = 16
+
+LocationBT1B.Name = "LocationBT1B"
+LocationBT1B.Parent = WayPointsFrame
+LocationBT1B.BackgroundColor3 = Color3.new(66/255, 0, 165/255)
+LocationBT1B.TextColor3 = Color3.new(1, 1, 1)
+LocationBT1B.BorderColor3 = Color3.new(0.6, 0.6, 0.6)
+LocationBT1B.Position = UDim2.new(0, 5, 0, 305)
+LocationBT1B.Size = UDim2.new(0, 365, 0, 20)
+LocationBT1B.Font = Enum.Font.Fantasy
+LocationBT1B.Text = "Tp to [2k x BT] Area: 1B+ BT required"
+LocationBT1B.TextWrapped = true
+LocationBT1B.TextSize = 16
+
+LocationBT100B.Name = "LocationBT100B"
+LocationBT100B.Parent = WayPointsFrame
+LocationBT100B.BackgroundColor3 = Color3.new(66/255, 0, 165/255)
+LocationBT100B.TextColor3 = Color3.new(1, 1, 1)
+LocationBT100B.BorderColor3 = Color3.new(0.6, 0.6, 0.6)
+LocationBT100B.Position = UDim2.new(0, 5, 0, 330)
+LocationBT100B.Size = UDim2.new(0, 365, 0, 20)
+LocationBT100B.Font = Enum.Font.Fantasy
+LocationBT100B.Text = "Tp to [40k x BT] Area: 100B+ BT required"
+LocationBT100B.TextWrapped = true
+LocationBT100B.TextSize = 16
+
+LocationBT10T.Name = "LocationBT10T"
+LocationBT10T.Parent = WayPointsFrame
+LocationBT10T.BackgroundColor3 = Color3.new(66/255, 0, 165/255)
+LocationBT10T.TextColor3 = Color3.new(1, 1, 1)
+LocationBT10T.BorderColor3 = Color3.new(0.6, 0.6, 0.6)
+LocationBT10T.Position = UDim2.new(0, 5, 0, 355)
+LocationBT10T.Size = UDim2.new(0, 365, 0, 20)
+LocationBT10T.Font = Enum.Font.Fantasy
+LocationBT10T.Text = "Tp to [800k x BT] Area: 10T+ BT required"
+LocationBT10T.TextWrapped = true
+LocationBT10T.TextSize = 16
+
+LocationPP1M.Name = "LocationPP1M"
+LocationPP1M.Parent = WayPointsFrame
+LocationPP1M.BackgroundColor3 = Color3.new(195/255, 0, 39/255)
+LocationPP1M.TextColor3 = Color3.new(1, 1, 1)
+LocationPP1M.BorderColor3 = Color3.new(0.6, 0.6, 0.6)
+LocationPP1M.Position = UDim2.new(0, 5, 0, 380)
+LocationPP1M.Size = UDim2.new(0, 365, 0, 20)
+LocationPP1M.Font = Enum.Font.Fantasy
+LocationPP1M.Text = "Tp to Psychic Island [100x PP]: 1M+ PP required"
+LocationPP1M.TextWrapped = true
+LocationPP1M.TextSize = 16
+
+LocationPP1B.Name = "LocationPP1B"
+LocationPP1B.Parent = WayPointsFrame
+LocationPP1B.BackgroundColor3 = Color3.new(195/255, 0, 39/255)
+LocationPP1B.TextColor3 = Color3.new(1, 1, 1)
+LocationPP1B.BorderColor3 = Color3.new(0.6, 0.6, 0.6)
+LocationPP1B.Position = UDim2.new(0, 5, 0, 405)
+LocationPP1B.Size = UDim2.new(0, 365, 0, 20)
+LocationPP1B.Font = Enum.Font.Fantasy
+LocationPP1B.Text = "Tp to Psychic Island [10k x PP]: 1B+ PP required"
+LocationPP1B.TextWrapped = true
+LocationPP1B.TextSize = 16
+
+LocationPP1T.Name = "LocationPP1T"
+LocationPP1T.Parent = WayPointsFrame
+LocationPP1T.BackgroundColor3 = Color3.new(195/255, 0, 39/255)
+LocationPP1T.TextColor3 = Color3.new(1, 1, 1)
+LocationPP1T.BorderColor3 = Color3.new(0.6, 0.6, 0.6)
+LocationPP1T.Position = UDim2.new(0, 5, 0, 430)
+LocationPP1T.Size = UDim2.new(0, 365, 0, 20)
+LocationPP1T.Font = Enum.Font.Fantasy
+LocationPP1T.Text = "Tp to Psychic Island [1M x PP]: 1T+ PP required"
+LocationPP1T.TextWrapped = true
+LocationPP1T.TextSize = 16
+
+LocationPP1Qa.Name = "LocationPP1Qa"
+LocationPP1Qa.Parent = WayPointsFrame
+LocationPP1Qa.BackgroundColor3 = Color3.new(195/255, 0, 39/255)
+LocationPP1Qa.TextColor3 = Color3.new(1, 1, 1)
+LocationPP1Qa.BorderColor3 = Color3.new(0.6, 0.6, 0.6)
+LocationPP1Qa.Position = UDim2.new(0, 5, 0, 455)
+LocationPP1Qa.Size = UDim2.new(0, 365, 0, 20)
+LocationPP1Qa.Font = Enum.Font.Fantasy
+LocationPP1Qa.Text = "Tp to Psychic Island [100M x PP]: 1Qa+ PP required"
+LocationPP1Qa.TextWrapped = true
+LocationPP1Qa.TextSize = 16
+
+								end
+							end
+						end
+					end)
+				end
+				task.wait(0.001)
+			end
+		end)
+	end
+end)
+
 
 ShowLocation.Name = "ShowLocation"
 ShowLocation.Parent = WayPointsFrame
