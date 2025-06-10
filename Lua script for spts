@@ -5180,7 +5180,16 @@ AutoKillRStackingToggle:OnChanged(function(isOn)
 								if not localPlayer.Character:FindFirstChild("GodModeShield") and not localPlayer.Character:FindFirstChild("GodModeShield ") and not localPlayer.Character:FindFirstChild("ForceField") and not localPlayer.Character:FindFirstChild("SafeZoneShield") then
 									task.spawn(function()
 										firetouchinterest(Target.Character.HumanoidRootPart, sphere, 0)
-									end)
+							end)
+						end
+					end)
+				end
+				task.wait(0.001)
+			end
+		end)
+	end
+end)
+
 SaveManager:SetLibrary(Fluent)
 InterfaceManager:SetLibrary(Fluent)
 SaveManager:SetIgnoreIndexes({})
